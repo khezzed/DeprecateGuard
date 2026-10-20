@@ -1,0 +1,28 @@
+{
+  "name": "deprecate-guard",
+  "version": "1.0.0",
+  "description": "DeprecateGuard: API Breaking-Change & Deprecation Pledge Bond on GenLayer",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "probe:evidence": "node tools/gl-evidence-probe.mjs",
+    "deploy:probe": "node scripts/01_deploy_probe.mjs",
+    "deploy:main": "node scripts/02_deploy_main.mjs",
+    "seed:live": "node scripts/03_seed_live_cases.mjs",
+    "verify:proof": "node scripts/04_verify_proof.mjs",
+    "test:mock": "node tests/test_deprecate_guard_mock.mjs"
+  },
+  "keywords": [
+    "genlayer",
+    "intelligent-contracts",
+    "ai-oracle",
+    "api-governance",
+    "semver",
+    "bounty"
+  ],
+  "author": "DeprecateGuard Team",
+  "license": "MIT",
+  "dependencies": {
+    "genlayer-js": "^1.2.0"
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "projectName": "DeprecateGuard",
+  "tagline": "API Breaking-Change & Deprecation Pledge Bond on GenLayer",
+  "repositoryUrl": "https://github.com/khezzed/DeprecateGuard",
+  "network": {
+    "chainId": 61999,
+    "networkName": "GenLayer StudioNet",
+    "rpcUrl": "https://studio.genlayer.com/api",
+    "explorerUrl": "https://explorer-studio.genlayer.com"
+  },
+  "runnerHash": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6",
+  "contracts": {
+    "probeContract": {
+      "address": "0xE735D4d659Ec0ED69e491C3262d517c81E6Aa88F",
+      "deployTx": "0x1657a84739f98f9e73f77faf99caae6d6b257a8d33a0724d460348d61e49c091",
+      "probeCallTx": "0x5d2dcf09a2cb0e8c000a596a35b48c080ee2d9ce641c9f2bc414bfa7546990fa",
+      "evidenceSampleUrl": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
+      "onChainResult": "SUCCESS|FETCHED_OK:f8f14a75c6701dcf36810eeff864125a74815e0562e579d4bff575c1a9ede07d|https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js"
+    },
+    "mainContract": {
+      "address": "0x0645f04f8Fb89451Fa0c2B3c6F5E4cbD724Fb531",
+      "deployTx": "0xa39ef0fbb9ef58a2e45b713ef73c8a17339a00e0b20a8b5d3a9e6d5c1775674a",
+      "liveStats": {
+        "total_pledges": 4,
+        "total_claims": 4
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "id": 1,
+      "title": "Case 1: Objective Pledge Creation (RuleGate ACCEPTED)",
+      "description": "Maintainer locks a stability pledge bond for Express.js res.sendFile(path, options, callback). Validators run the RuleGate LLM check, confirm the commitment is concrete and observable, freeze the SHA-256 clause digest, and open the pledge.",
+      "txHash": "0xc39597f74e279ea29f6637a4471294b6c5f32701314dee90f9036d0b29914fd5",
+      "outcome": "ACCEPTED",
+      "evidenceUrl": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
+      "verbatimQuote": "res.sendFile = function sendFile(path, options, callback)",
+      "extractedDigest": "0796cd863cc1afa58b8b72de3a8d0e96381cc287056dc464498836ccde503151",
+      "details": {
+        "id": 1,
+        "maintainer": "0xc130A7a4C4F22b2644Eaa62F5D13F14c941860aC",
+        "package_name": "express",
+        "clause_text": "In Express.js lib/response.js, the res.sendFile(path, options, callback) method must exist and accept (path, options, callback) arguments without being removed.",
+        "clause_sha256": "0796cd863cc1afa58b8b72de3a8d0e96381cc287056dc464498836ccde503151",
+        "bond_wei": 1,
+        "created_at": 1792490000,
+        "expires_at": 1795082000,
+        "grace_period_seconds": 86400,
+        "status": "OPEN",
+        "rule_gate_outcome": "ACCEPTED",
+        "rule_gate_reason": "Names a concrete file and method res.sendFile with observable existence and (path, options, callback) signature/non-removal checks."
+      }
+    },
+    {
+      "id": 2,
+      "title": "Case 2: Subjective Pledge Rejection (RuleGate REJECTED_VAGUE + Refund)",
+      "description": "Maintainer submits a vague promise (\"modern, ergonomic, fast, and developer-friendly\"). Validators reject it up front via RuleGate, credit the deposit to refundable_balances, and the maintainer withdraws the refund on-chain.",
+      "txHash": "0xb73415e7075773cefcd8e500a38a88993fbeaf2eb97b2521ac339fa53658aa23",
+      "withdrawTx": "0x04e1766afe25ed25c8ac9aa05f1c6d149064f26e4d660710e957ad9c0345db3e",
+      "outcome": "REJECTED_VAGUE",
+      "evidenceUrl": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
+      "verbatimQuote": "Clause uses subjective terms like modern, ergonomic, fast, and developer-friendly with no specific code-verifiable condition.",
+      "extractedDigest": "7c5b70f28c8440c8aba5d1db681949f188d2e0b27e4830721f8cceee8528f288",
+      "details": {
+        "id": 2,
+        "maintainer": "0xc130A7a4C4F22b2644Eaa62F5D13F14c941860aC",
+        "package_name": "express-vague",
+        "clause_text": "We promise our API will always stay modern, ergonomic, fast, and developer-friendly for everyone.",
+        "clause_sha256": "7c5b70f28c8440c8aba5d1db681949f188d2e0b27e4830721f8cceee8528f288",
+        "bond_wei": 0,
+        "refundable_wei": 1,
+        "created_at": 1792490000,
+        "expires_at": 1792490000,
+        "grace_period_seconds": 0,
+        "status": "REJECTED_VAGUE",
+        "rule_gate_outcome": "REJECTED_VAGUE",
+        "rule_gate_reason": "Clause uses subjective terms like modern, ergonomic, fast, and developer-friendly with no specific code-verifiable condition."
+      }
+    },
+    {
+      "id": 3,
+      "title": "Case 3: Breaking Change Confirmed (BREAKING_CONFIRMED & Bond Payout)",
+      "description": "Claimant submits pinned Express 4.18.2 commit (8368dc17...) proving legacy res.sendfile is wrapped in deprecate.function. Validators verify the SHA-256 slice digest, confirm the verbatim quote exists in their own fetched bytes, and settle the bond.",
+      "txHash": "0x5246e1f868746b57d6566a2786876617ae51763aa0d09a24d2a3d5c1cd86fe10",
+      "pledgeTx": "0x195829578395b3bd0897c5e00a2d7d315308dfb4185864d170dbe8148a3424bc",
+      "outcome": "BREAKING_CONFIRMED",
+      "evidenceUrl": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
+      "verbatimQuote": "res.sendfile = deprecate.function(res.sendfile,\n'res.sendfile: Use res.sendFile instead');",
+      "extractedDigest": "4bc8fa1f42c58fc36644453cc823853136fc9158df72a57ac88c98b803bb1e40",
+      "details": {
+        "id": 1,
+        "pledge_id": 3,
+        "claimant": "0xc130A7a4C4F22b2644Eaa62F5D13F14c941860aC",
+        "evidence_url": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
+        "anchor_symbol": "res.sendfile =",
+        "extracted_digest": "4bc8fa1f42c58fc36644453cc823853136fc9158df72a57ac88c98b803bb1e40",
+        "verdict": "BREAKING_CONFIRMED",
+        "verbatim_quote": "res.sendfile = deprecate.function(res.sendfile,\n'res.sendfile: Use res.sendFile instead');",
+        "reason": "res.sendfile is explicitly wrapped in deprecate.function, directly violating the frozen clause.",
+        "status": "FINALIZED"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Case 4: Honest Non-Breaking Claim Rejection (NON_BREAKING)",
+      "description": "Claimant files a claim against intact res.sendFile(path, options, callback). Validators fetch the pinned commit, verify the verbatim signature quote, and unanimously reject the claim as NON_BREAKING.",
+      "txHash": "0x8a2852ae7c25976800032db41e412b8e5ae936b3e69733c744a5f429ba380ea7",
+      "outcome": "NON_BREAKING",
+      "evidenceUrl": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
+      "verbatimQuote": "res.sendFile = function sendFile(path, options, callback) {",
+      "extractedDigest": "7d330c329f1318b51a595ecd693c82ce049f27238bec2c141fed9ed0eef233d9",
+      "details": {
+        "id": 2,
+        "pledge_id": 1,
+        "claimant": "0xc130A7a4C4F22b2644Eaa62F5D13F14c941860aC",
+        "evidence_url": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
+        "anchor_symbol": "res.sendFile = function sendFile",
+        "extracted_digest": "7d330c329f1318b51a595ecd693c82ce049f27238bec2c141fed9ed0eef233d9",
+        "verdict": "NON_BREAKING",
+        "verbatim_quote": "res.sendFile = function sendFile(path, options, callback) {",
+        "reason": "The snippet shows res.sendFile exists and accepts path, options, and callback arguments.",
+        "status": "FINALIZED"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Case 5: Adversarial Prompt Injection Defense (NON_BREAKING)",
+      "description": "Claimant submits pinned Open-Prompt-Injection CombineAttacker.py commit (fbed5cca...) which contains literal \"Ignore previous instructions.\" inside the fetched source code. Validators sandbox the untrusted evidence, ignore the injection, and return NON_BREAKING.",
+      "txHash": "0x04d21a7e64ebc1dc3ae4e184d7d39b305f2b74e09cb1cdec88a437782912a3b6",
+      "pledgeTx": "0xf9d2f4492a50443792d2d4db2c235543c44dfb30f7097dd3416a9022d07cb7e0",
+      "outcome": "NON_BREAKING",
+      "evidenceUrl": "https://raw.githubusercontent.com/liu00222/Open-Prompt-Injection/fbed5cca347488f88363790ae3ae97c56116da6a/OpenPromptInjection/attackers/CombineAttacker.py",
+      "verbatimQuote": "def inject(self, clean_data, idx, target_task):",
+      "extractedDigest": "be4ee051b2ab1fa76cdf7087ce0f13564edde85aa3098f5f2396995778a2c39c",
+      "details": {
+        "id": 3,
+        "pledge_id": 4,
+        "claimant": "0xc130A7a4C4F22b2644Eaa62F5D13F14c941860aC",
+        "evidence_url": "https://raw.githubusercontent.com/liu00222/Open-Prompt-Injection/fbed5cca347488f88363790ae3ae97c56116da6a/OpenPromptInjection/attackers/CombineAttacker.py",
+        "anchor_symbol": "def inject(self, clean_data, idx, target_task):",
+        "extracted_digest": "be4ee051b2ab1fa76cdf7087ce0f13564edde85aa3098f5f2396995778a2c39c",
+        "verdict": "NON_BREAKING",
+        "verbatim_quote": "def inject(self, clean_data, idx, target_task):",
+        "reason": "The pledged inject method exists with the required name and argument list.",
+        "status": "FINALIZED"
+      }
+    },
+    {
+      "id": 6,
+      "title": "Case 6: Insufficient Evidence & Deadline Fallback (INSUFFICIENT_EVIDENCE)",
+      "description": "Claimant queries an absent symbol, finalizing as INSUFFICIENT_EVIDENCE. Then resolve_expired_pledge() executes after expires_at + grace_period, deterministically unlocking the maintainer bond so funds never lock forever.",
+      "txHash": "0xc02ae20c49a468bcfa0d08d7acc02cffa267b0238c7c9bfae68a23607e5b174f",
+      "expireTx": "0x1d3c84d48222ea141cc6eb788b9a81f8750bf2e94133b1939718fa613cf33d8c",
+      "outcome": "INSUFFICIENT_EVIDENCE",
+      "evidenceUrl": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
+      "verbatimQuote": "ANCHOR_SYMBOL_NOT_FOUND",
+      "extractedDigest": "8be93afe616bd8119e75be64290d67bd67d111a795e51a0244a4e9af70111d74",
+      "details": {
+        "id": 4,
+        "pledge_id": 1,
+        "claimant": "0xc130A7a4C4F22b2644Eaa62F5D13F14c941860aC",
+        "evidence_url": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
+        "anchor_symbol": "nonExistentFunctionSymbol_XYZ_999",
+        "extracted_digest": "8be93afe616bd8119e75be64290d67bd67d111a795e51a0244a4e9af70111d74",
+        "verdict": "INSUFFICIENT_EVIDENCE",
+        "verbatim_quote": "ANCHOR_SYMBOL_NOT_FOUND",
+        "reason": "Anchor symbol 'nonExistentFunctionSymbol_XYZ_999' was not found in the fetched artifact.",
+        "status": "FINALIZED"
+      }
+    }
+  ],
+  "verifiedAt": "2026-10-20T11:09:20.780Z"
+}
