@@ -114,9 +114,8 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
 
 - **WEBSITE - REQUIRED:**
   ```text
-  https://khezzed.github.io/DeprecateGuard/
+  https://deprecate-guard.vercel.app/
   ```
-  *(Note: Prepared and pushed to the `gh-pages` branch of your repository — enable GitHub Pages on branch `gh-pages` in repo Settings -> Pages, or deploy via Vercel).*
 - **GITHUB:**
   ```text
   https://github.com/khezzed/DeprecateGuard
