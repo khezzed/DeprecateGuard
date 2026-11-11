@@ -89,6 +89,16 @@ async function main() {
       }
 
       // Check auxiliary transactions if present
+      if (sc.directPayoutTransferredWei) {
+        console.log(`  Auditing Direct Native Token Payout: ${sc.directPayoutTransferredWei} wei via emit_transfer`);
+        if (readablePayload.includes('CLAIM_SETTLED_PAID:') && sc.details?.payout_transferred_wei > 0) {
+          console.log(`    -> Direct native payout verified inside claim transaction finality: ${readablePayload}`);
+        } else {
+          console.error(`    -> [FAIL] Direct native payout verification failed on claim details: ${JSON.stringify(sc.details)}`);
+          continue;
+        }
+      }
+
       if (sc.withdrawTx) {
         console.log(`  Auditing Real Native Withdrawal Tx: ${sc.withdrawTx}`);
         const wTx = await client.getTransaction({ hash: sc.withdrawTx });

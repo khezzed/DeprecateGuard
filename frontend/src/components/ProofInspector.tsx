@@ -234,6 +234,24 @@ export const ProofInspector: React.FC<Props> = ({ scenarios }) => {
             </div>
           )}
 
+          {/* Direct Native Token Payout Proof */}
+          {(activeScenario as any).directPayoutTransferredWei && (
+            <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 space-y-2">
+              <div className="flex items-center justify-between text-xs text-emerald-300 font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <Coins className="w-4 h-4 text-emerald-400" />
+                  Direct Native Token Bounty Payout (emit_transfer upon judgment)
+                </span>
+                <span className="font-mono text-[11px] text-emerald-400">
+                  {(activeScenario as any).directPayoutTransferredWei} wei
+                </span>
+              </div>
+              <div className="text-xs text-emerald-200/90 font-mono">
+                Executed immediately upon BREAKING_CONFIRMED verdict to claimant address
+              </div>
+            </div>
+          )}
+
           {/* Primary Action Links */}
           <div className="pt-2 flex flex-wrap items-center gap-2.5">
             <a

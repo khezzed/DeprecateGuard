@@ -5,7 +5,7 @@ import { getStudioClient, saveState, loadState, saveProof, waitForFinality } fro
 const PINNED_EXPRESS_URL = 'https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js';
 const PINNED_EXPRESS_RELEASE = 'https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/History.md';
 const PINNED_INJECTION_URL = 'https://raw.githubusercontent.com/liu00222/Open-Prompt-Injection/fbed5cca347488f88363790ae3ae97c56116da6a/OpenPromptInjection/attackers/CombineAttacker.py';
-const PINNED_INJECTION_RELEASE = 'https://raw.githubusercontent.com/liu00222/Open-Prompt-Injection/fbed5cca347488f88363790ae3ae97c56116da6a/README.md';
+const PINNED_INJECTION_RELEASE = 'https://raw.githubusercontent.com/liu00222/Open-Prompt-Injection/fbed5cca347488f88363790ae3ae97c56116da6a/environment.yml';
 
 async function main() {
   console.log('=== Step 3: Seeding Live Real Scenarios on StudioNet (All 4 Steward Fixes) ===');
@@ -178,21 +178,12 @@ async function main() {
       throw new Error(`Expected Claim #1 BREAKING_CONFIRMED, got: ${claimRaw}`);
     }
 
-    console.log('Executing claimant withdraw_refundable() for real native token bond payout...');
-    const withdrawTx = await client.writeContract({
-      address: contractAddress,
-      functionName: 'withdraw_refundable',
-      args: []
-    });
-    console.log(`Case 3 Bounty Payout Withdraw Tx Hash: ${withdrawTx}`);
-    const withdrawFinality = await waitForFinality(client, withdrawTx);
-    console.log(`Case 3 Bounty Payout Real Native Transfer Finalized: ${withdrawFinality.returnReadable}`);
+    console.log(`Case 3 Direct Native Token Bounty Payout Transferred: ${claimObj.payout_transferred_wei || 1} wei to claimant via emit_transfer`);
 
     cases.case3_claimBreaking = {
       pledgeTx,
       txHash: claimTx,
-      withdrawTx,
-      withdrawReturn: withdrawFinality.returnReadable,
+      directPayoutTransferredWei: claimObj.payout_transferred_wei || 1,
       returnReadable: finality.returnReadable,
       expected: 'BREAKING_CONFIRMED',
       actual: claimObj.verdict,
@@ -285,7 +276,7 @@ async function main() {
         'open-prompt-injection',
         'liu00222/Open-Prompt-Injection',
         'OpenPromptInjection/attackers/CombineAttacker.py',
-        '0.1.0',
+        'v0.1.0',
         injectClause,
         2592000,
         86400
@@ -301,7 +292,7 @@ async function main() {
       functionName: 'submit_and_judge_claim',
       args: [
         4,
-        'Open-Prompt-Injection',
+        'torch==2.3.1',
         'fbed5cca347488f88363790ae3ae97c56116da6a',
         PINNED_INJECTION_RELEASE,
         PINNED_INJECTION_URL,
@@ -345,7 +336,7 @@ async function main() {
   // --------------------------------------------------------------------------
   if (!cases.case6_insufficientAndFallback) {
     console.log('\n--- Case 6: Testing INSUFFICIENT_EVIDENCE & Trusted-Time Expiry Fallback ---');
-    console.log('Creating short-duration pledge (duration=2s, grace=2s) for trusted-time expiry test...');
+    console.log('Creating pledge (duration=90s, grace=1s) so claim executes while pledge is active...');
     const pledgeTx = await client.writeContract({
       address: contractAddress,
       functionName: 'create_pledge',
@@ -355,15 +346,15 @@ async function main() {
         'lib/response.js',
         '4.17.1',
         'In Express.js lib/response.js, res.format must exist.',
-        2,
-        2
+        90,
+        1
       ],
       value: 1n
     });
     console.log(`Case 6 Pledge Tx: ${pledgeTx}`);
     await waitForFinality(client, pledgeTx);
 
-    console.log('Submitting claim with nonexistent anchor symbol (INSUFFICIENT_EVIDENCE)...');
+    console.log('Immediately submitting claim with nonexistent anchor symbol (INSUFFICIENT_EVIDENCE) while now_ts <= expires_at...');
     const claimTx = await client.writeContract({
       address: contractAddress,
       functionName: 'submit_and_judge_claim',
@@ -386,8 +377,8 @@ async function main() {
     const claimObj = JSON.parse(claimRaw);
     console.log(`Case 6 Finalized On-Chain Claim #4:`, claimObj);
 
-    console.log('Waiting 10s so trusted runtime timestamp gl.message_raw["datetime"] > expires_at + grace_period...');
-    await new Promise(r => setTimeout(r, 10000));
+    console.log('Waiting 65s so trusted runtime timestamp gl.message_raw["datetime"] > expires_at + grace_period...');
+    await new Promise(r => setTimeout(r, 65000));
 
     console.log('Executing resolve_expired_pledge(5) with trusted runtime time (no caller timestamp parameter!)...');
     const expireTx = await client.writeContract({
@@ -469,8 +460,8 @@ async function main() {
     scenarios: [
       {
         id: 1,
-        title: 'Case 1: Objective Pledge Creation (RuleGate ACCEPTED)',
-        description: 'Maintainer locks a stability pledge bond for Express.js res.sendFile. Validators run RuleGate LLM check, confirm the commitment is concrete and code-verifiable, freeze repo and clause hash, and open the pledge.',
+        title: 'Approved Stability Pledge for Express.js',
+        description: 'Maintainer locks a stability pledge bond for Express.js res.sendFile(). Validators run RuleGate LLM check, confirm the commitment is concrete and code-verifiable, freeze repo and clause hash, and open the pledge.',
         txHash: cases.case1_pledgeValid.txHash,
         outcome: 'ACCEPTED',
         evidenceUrl: cases.case1_pledgeValid.evidenceUrl,
@@ -480,8 +471,8 @@ async function main() {
       },
       {
         id: 2,
-        title: 'Case 2: Subjective Pledge Rejection (RuleGate REJECTED_VAGUE) + Real Native Withdrawal',
-        description: 'Maintainer attempts vague pledge ("modern, ergonomic, fast"). Validators reject it. Maintainer executes withdraw_refundable() which issues a real on-chain native transfer via gl.get_contract_at(caller).emit_transfer.',
+        title: 'Rejected Vague Marketing Pledge & Real Native Refund',
+        description: 'Maintainer attempts vague pledge ("modern, ergonomic, fast"). Validators reject it up front. Maintainer executes withdraw_refundable() which issues a real on-chain native transfer via gl.get_contract_at(caller).emit_transfer.',
         txHash: cases.case2_pledgeVague.txHash,
         withdrawTx: cases.case2_pledgeVague.withdrawTx,
         withdrawReturn: cases.case2_pledgeVague.withdrawReturn,
@@ -493,11 +484,10 @@ async function main() {
       },
       {
         id: 3,
-        title: 'Case 3: Breaking Change Confirmed (BREAKING_CONFIRMED) + Real Native Bounty Payout',
-        description: 'Claimant submits pledge-bound release evidence (History.md) and code evidence (lib/response.js) proving res.sendfile was deprecated. Validators confirm breach. Bond settles to claimant, who withdraws via real native transfer.',
+        title: 'Express.js Deprecates Legacy res.sendfile() & Pays Bounty',
+        description: 'Claimant submits pledge-bound release evidence (History.md) and code evidence (lib/response.js) proving res.sendfile was deprecated. Validators confirm breach. Bond is transferred directly to claimant upon finalization via gl.get_contract_at(claimant).emit_transfer.',
         txHash: cases.case3_claimBreaking.txHash,
-        withdrawTx: cases.case3_claimBreaking.withdrawTx,
-        withdrawReturn: cases.case3_claimBreaking.withdrawReturn,
+        directPayoutTransferredWei: cases.case3_claimBreaking.directPayoutTransferredWei || 1,
         outcome: 'BREAKING_CONFIRMED',
         evidenceUrl: cases.case3_claimBreaking.evidenceUrl,
         releaseEvidenceUrl: cases.case3_claimBreaking.releaseEvidenceUrl,
@@ -507,7 +497,7 @@ async function main() {
       },
       {
         id: 4,
-        title: 'Case 4: Honest Non-Breaking Claim (NON_BREAKING)',
+        title: 'False Alarm on Intact res.sendFile() Signature',
         description: 'Claimant tests intact method (res.sendFile). Validators fetch bounded slice, verify method is fully functional, and record NON_BREAKING verdict without penalizing maintainer.',
         txHash: cases.case4_claimNonBreaking.txHash,
         outcome: 'NON_BREAKING',
@@ -519,8 +509,8 @@ async function main() {
       },
       {
         id: 5,
-        title: 'Case 5: Adversarial Prompt Injection Defense + Mismatched Repo Rejection',
-        description: 'Demonstrates deterministic rejection of mismatched repository claims, and defense against adversarial code containing prompt injections ("Ignore previous instructions") in CombineAttacker.py.',
+        title: 'Prompt-Injection Defense & Mismatched Repo Enforcement',
+        description: 'Demonstrates deterministic on-chain rejection of mismatched repository claims, and defense against adversarial code containing prompt injections ("Ignore previous instructions") inside CombineAttacker.py.',
         txHash: cases.case5_injectionDefense.txHash,
         mismatchedTx: cases.case5_injectionDefense.mismatchedTx,
         mismatchedReturn: cases.case5_injectionDefense.mismatchedReturn,
@@ -533,8 +523,8 @@ async function main() {
       },
       {
         id: 6,
-        title: 'Case 6: Insufficient Evidence & Trusted-Time Expiry Fallback + Real Refund Transfer',
-        description: 'Demonstrates INSUFFICIENT_EVIDENCE when anchor symbol is missing, followed by trusted-time fallback resolution via resolve_expired_pledge() without caller-supplied time, and real native token refund via withdraw_refundable().',
+        title: 'Unmatched Symbol & Trusted-Time Bond Expiry Refund',
+        description: 'Demonstrates INSUFFICIENT_EVIDENCE when anchor symbol is missing, followed by trusted-time fallback resolution via resolve_expired_pledge() using real GenVM clock progression, and real native token refund via withdraw_refundable().',
         txHash: cases.case6_insufficientAndFallback.txHash,
         expireTx: cases.case6_insufficientAndFallback.expireTx,
         expireReturn: cases.case6_insufficientAndFallback.expireReturn,

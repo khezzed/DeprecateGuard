@@ -263,21 +263,36 @@ Return ONLY valid JSON with exact keys:
         if pledge["status"] != "OPEN":
             return f"ERROR:PLEDGE_NOT_OPEN_{pledge['status']}"
 
-        # 1. Enforce 40-hex commit SHA
+        # 1. Enforce trusted runtime time against pledge expiration window
+        now_ts = self._get_trusted_timestamp()
+        if now_ts > int(pledge["expires_at"]):
+            return f"ERROR:PLEDGE_WINDOW_EXPIRED_{pledge['expires_at']}_NOW_{now_ts}"
+
+        # 2. Enforce 40-hex commit SHA
         if not re.match(r'^[0-9a-fA-F]{40}$', commit_sha):
             return "ERROR:INVALID_COMMIT_SHA_HEX"
 
-        # 2. Enforce Pledge-Bound Evidence URL (Must match pledged repo & file at commit_sha)
+        # 3. Enforce Pledge-Bound Evidence URL (Must match pledged repo & file at commit_sha)
         expected_evidence_url = f"https://raw.githubusercontent.com/{pledge['repo_full_name']}/{commit_sha}/{pledge['target_file_path']}"
         if evidence_url != expected_evidence_url:
             return "ERROR:EVIDENCE_NOT_BOUND_TO_PLEDGE_REPO_OR_FILE"
 
-        # 3. Enforce Pledge-Bound Release Evidence URL
+        # 4. Enforce Pledge-Bound Release Evidence URL
         if not self._is_valid_immutable_url(release_evidence_url):
             return "ERROR:MUTABLE_OR_INVALID_RELEASE_EVIDENCE_URL"
 
-        expected_release_prefix = f"https://raw.githubusercontent.com/{pledge['repo_full_name']}/{commit_sha}/"
-        if not release_evidence_url.startswith(expected_release_prefix) and "web.archive.org" not in release_evidence_url:
+        if release_evidence_url == evidence_url:
+            return "ERROR:RELEASE_EVIDENCE_CANNOT_BE_SAME_AS_CODE_EVIDENCE"
+
+        expected_raw_prefix = f"https://raw.githubusercontent.com/{pledge['repo_full_name']}/{commit_sha}/"
+        is_raw_bound = release_evidence_url.startswith(expected_raw_prefix)
+        is_archive_bound = False
+        if "web.archive.org/web/" in release_evidence_url and "id_/" in release_evidence_url:
+            after_id = release_evidence_url.split("id_/", 1)[1]
+            if f"github.com/{pledge['repo_full_name']}/" in after_id or f"raw.githubusercontent.com/{pledge['repo_full_name']}/" in after_id:
+                is_archive_bound = True
+
+        if not (is_raw_bound or is_archive_bound):
             return "ERROR:RELEASE_EVIDENCE_NOT_BOUND_TO_PLEDGE_REPO"
 
         self.claim_counter = u256(int(self.claim_counter) + 1)
@@ -286,15 +301,14 @@ Return ONLY valid JSON with exact keys:
         frozen_clause = pledge["clause_text"]
 
         def run_audit():
-            # Step A: Fetch release evidence and verify release_tag is present and not baseline
+            # Step A: Fetch release evidence and extract bounded slice around release_tag
             try:
                 release_raw = gl.nondet.web.render(release_evidence_url, mode='text')
             except Exception as e:
                 release_raw = ""
 
-            release_verified = bool(release_raw and release_tag in release_raw and release_tag != pledge.get("baseline_tag", ""))
-            release_sample = release_raw[:600] if release_raw else "EMPTY_RELEASE"
-            release_digest = hashlib.sha256(release_sample.encode('utf-8')).hexdigest()[:16]
+            release_slice, release_digest, tag_found = extract_bounded_evidence(release_raw, release_tag)
+            release_verified = bool(tag_found and release_tag != pledge.get("baseline_tag", ""))
 
             # Step B: Fetch pledged code evidence and extract bounded slice
             try:
@@ -441,21 +455,28 @@ Return ONLY valid JSON:
             "verdict": verdict,
             "verbatim_quote": verbatim_quote,
             "reason": reason,
-            "status": "FINALIZED"
+            "status": "FINALIZED",
+            "judged_at": now_ts,
+            "payout_transferred_wei": 0
         }
-        self.claims[u256(claim_id)] = json.dumps(claim_obj)
 
         if verdict == "BREAKING_CONFIRMED":
             bond = int(pledge["bond_wei"])
             pledge["status"] = "CLAIMED_PAID"
             pledge["bond_wei"] = 0
             pledge["winning_claim_id"] = claim_id
+            pledge["payout_transferred_wei"] = bond
+            claim_obj["payout_transferred_wei"] = bond
+            self.claims[u256(claim_id)] = json.dumps(claim_obj)
             self.pledges[u256(pledge_id)] = json.dumps(pledge)
 
-            claimant_bal = int(self.refundable_balances.get(claimant, u256(0)))
-            self.refundable_balances[claimant] = u256(claimant_bal + bond)
+            # Direct native token transfer to claimant upon confirmed breach
+            if bond > 0:
+                gl.get_contract_at(claimant).emit_transfer(value=u256(bond))
+
             return f"CLAIM_SETTLED_PAID:CLAIM_{claim_id}:BREAKING_CONFIRMED"
 
+        self.claims[u256(claim_id)] = json.dumps(claim_obj)
         return f"CLAIM_RECORDED:CLAIM_{claim_id}:{verdict}"
 
     # =========================================================================

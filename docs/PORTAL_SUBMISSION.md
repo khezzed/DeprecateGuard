@@ -66,7 +66,7 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
   ```
 - **INSTRUCTION:**
   ```text
-  Click the "Live StudioNet RPC (gen_call)" toggle in the top header to execute real-time read calls (get_stats, get_pledge, get_claim) directly against StudioNet Chain 61999 (0x9D8830F4A62d37D9Ca346e3f2D54b512B228fc4d).
+  Click the "Live StudioNet RPC (gen_call)" toggle in the top header to execute real-time read calls (get_stats, get_pledge, get_claim) directly against StudioNet Chain 61999 (0xEEDa967BeC7EB022350425C1D0c7c50107c06F1c).
   ```
 
 ### Step `#3`
@@ -95,12 +95,12 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
 
 - **EXPECTED VERIFICATION OUTCOME (`Max 500 chars`):**
   ```text
-  The UI and "npm run verify:proof" confirm 6/6 finalized StudioNet scenarios (MAJORITY_AGREE, GenVM: SUCCESS): (1) ACCEPTED pledge, (2) REJECTED_VAGUE + real native transfer, (3) BREAKING_CONFIRMED + real native bounty payout, (4) NON_BREAKING additive release, (5) NON_BREAKING prompt-injection defense + mismatched repo rejection, and (6) INSUFFICIENT_EVIDENCE + trusted-time expiry fallback refund.
+  The UI and "npm run verify:proof" confirm 6/6 finalized StudioNet scenarios (MAJORITY_AGREE, GenVM: SUCCESS): (1) ACCEPTED pledge, (2) REJECTED_VAGUE + real native transfer, (3) BREAKING_CONFIRMED + direct native bounty payout, (4) NON_BREAKING additive release, (5) NON_BREAKING prompt-injection defense + mismatched repo rejection, and (6) INSUFFICIENT_EVIDENCE + trusted-time expiry fallback refund.
   ```
 
 - **CONTRACT LINK 1 (OPTIONAL):**
   ```text
-  https://explorer-studio.genlayer.com/address/0x9D8830F4A62d37D9Ca346e3f2D54b512B228fc4d
+  https://explorer-studio.genlayer.com/address/0xEEDa967BeC7EB022350425C1D0c7c50107c06F1c
   ```
 - Click **`+ Add another deployment`** -> **CONTRACT LINK 2:**
   ```text
@@ -130,9 +130,9 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
   ```
 - Click **`+ Add Evidence`** to attach direct proof artifacts:
   - **Proof Manifest (`deploy/proof.json`):** `https://github.com/khezzed/DeprecateGuard/blob/main/deploy/proof.json`
-  - **Scenario 1 (`ACCEPTED`):** `https://explorer-studio.genlayer.com/tx/0x2622cb4ca4fc9aa7d68324fb242d192eb81451f940634d6a49a649bd7fe02219`
-  - **Scenario 2 (`REJECTED_VAGUE`):** `https://explorer-studio.genlayer.com/tx/0xe2cf3a052271ea08b9e0f6f6e16553df763bfb516411569722db9d6f51e2af80` (Native Withdrawal: `0xaf79de750f3f0fdd74e05df2577bd7e62843b9fcfc6bd0e6778460a02c478b5e`)
-  - **Scenario 3 (`BREAKING_CONFIRMED`):** `https://explorer-studio.genlayer.com/tx/0xbcb2d48e79d1c8a950b123abd6bec824418b754c77978c1a68f89fbe88788c92` (Native Bounty Payout: `0xaeb4b7f365256480cc75da6d1ac6e8c459cdb8622c2c7a01f7b5f051ffd25626`)
-  - **Scenario 4 (`NON_BREAKING`):** `https://explorer-studio.genlayer.com/tx/0x5de0423ad3738de5e9fa754de6e2e21dca61442a2cce2ee6a11023851993a622`
-  - **Scenario 5 (`NON_BREAKING` Injection Defense):** `https://explorer-studio.genlayer.com/tx/0xe0fc22e79332d45ecfcf42329f7efb8a6c7411470cd115fb6384843176f95709` (Repo Mismatch Rejection: `0x9a3609197f88073cf924f23ad9d5d71c1363ea7e6e4bac0e451d2f0393fef5de`)
-  - **Scenario 6 (`INSUFFICIENT_EVIDENCE`):** `https://explorer-studio.genlayer.com/tx/0xeb4471c9980a2fb66768862bd2ab178f10e8a3444a2cc358c5e1be32dd407784` (Trusted-Time Expiry: `0xa9af99732fa388fcb8ff1de2a33caeeb954bf3c0a7bad6053427c6e4b585e438`, Native Refund: `0x5831efbb052df6ac12f1936aeb36be115fce9b76f9d8bfbe7872dca027d7e977`)
+  - **Scenario 1 (`ACCEPTED`):** `https://explorer-studio.genlayer.com/tx/0x2481585086712952a749ea5b6947cddb8a6e9a9bb1566c1e65434b63cf2d5537`
+  - **Scenario 2 (`REJECTED_VAGUE`):** `https://explorer-studio.genlayer.com/tx/0xccf1320dacac1cd425bd983462051e64f954348bb23afe6021b4f7f606ca9147` (Native Withdrawal: `0x4dcb7084e44aa52a4f8738bdfe81ed4521b8052aad54fc0d86745820ae9329fe`)
+  - **Scenario 3 (`BREAKING_CONFIRMED`):** `https://explorer-studio.genlayer.com/tx/0x2b1765792aed5528fe0516ed081f3615d907019b4fb025f440bc09b8a7ec28a5` (Direct Native Bounty Payout: 1 wei via `emit_transfer`)
+  - **Scenario 4 (`NON_BREAKING`):** `https://explorer-studio.genlayer.com/tx/0x312985382ea2e59e09b6fd2feeb5a461fd8f0fb468c7519f9a212a06fdb9fae4`
+  - **Scenario 5 (`NON_BREAKING` Injection Defense):** `https://explorer-studio.genlayer.com/tx/0xb167cde822841b6fbadc8529d6abb1b0b64e562fcfabd13dc82aba2451024fce` (Repo Mismatch Rejection: `0x54c7c83647d273c1f4cd32f4340f74030949e29397c193642a6ff77078be1e59`)
+  - **Scenario 6 (`INSUFFICIENT_EVIDENCE`):** `https://explorer-studio.genlayer.com/tx/0xf992292cd32e3474a42f26ecef4a8c6e261bfb1851b797b0c581548d0667516b` (Trusted-Time Expiry: `0x4ba5b75ca1cfcb09adf2812d0353d883c1934efbc5df8f24e9e5f3ff9afab5d0`, Native Refund: `0x6b7b772e16d317e62e57bd6f39357a037a74534f8573b02770ed15536c2be05e`)
