@@ -66,7 +66,7 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
   ```
 - **INSTRUCTION:**
   ```text
-  Click the "Live StudioNet RPC (gen_call)" toggle in the top header to execute real-time read calls (get_stats, get_pledge, get_claim) directly against StudioNet Chain 61999 (0x0645f04f8Fb89451Fa0c2B3c6F5E4cbD724Fb531).
+  Click the "Live StudioNet RPC (gen_call)" toggle in the top header to execute real-time read calls (get_stats, get_pledge, get_claim) directly against StudioNet Chain 61999 (0x9D8830F4A62d37D9Ca346e3f2D54b512B228fc4d).
   ```
 
 ### Step `#3`
@@ -76,7 +76,7 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
   ```
 - **INSTRUCTION:**
   ```text
-  Clone https://github.com/khezzed/DeprecateGuard, run "npm install", and execute "npm run verify:proof" to independently verify all 6 finalized transactions and GenVM receipts against https://studio.genlayer.com/api.
+  Clone https://github.com/khezzed/DeprecateGuard, run "npm install", and execute "npm run verify:proof" to independently verify all 6 finalized transactions, real native token transfers, and GenVM receipts against https://studio.genlayer.com/api.
   ```
 
 ### Step `#4`
@@ -86,7 +86,7 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
   ```
 - **INSTRUCTION:**
   ```text
-  Use the Interactive StudioNet Actions panel to create a new pledge bond (testing RuleGate acceptance or vague-rule rejection), submit a breaking-change claim against a 40-hex commit SHA, or withdraw refundable balances.
+  Use the Interactive StudioNet Actions panel to create a new pledge bond (testing RuleGate acceptance or vague-rule rejection), submit a breaking-change claim against a 40-hex commit SHA, or withdraw refundable balances via real native token transfers.
   ```
 
 ---
@@ -95,13 +95,12 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
 
 - **EXPECTED VERIFICATION OUTCOME (`Max 500 chars`):**
   ```text
-  The UI and "npm run verify:proof" confirm 6/6 finalized StudioNet scenarios (MAJORITY_AGREE, GenVM: SUCCESS): (1) ACCEPTED pledge, (2) REJECTED_VAGUE + refund withdrawal, (3) BREAKING_CONFIRMED + bond payout, (4) NON_BREAKING additive release, (5) NON_BREAKING adversarial prompt-injection rejection, and (6) INSUFFICIENT_EVIDENCE + deadline expiry refund.
+  The UI and "npm run verify:proof" confirm 6/6 finalized StudioNet scenarios (MAJORITY_AGREE, GenVM: SUCCESS): (1) ACCEPTED pledge, (2) REJECTED_VAGUE + real native transfer, (3) BREAKING_CONFIRMED + real native bounty payout, (4) NON_BREAKING additive release, (5) NON_BREAKING prompt-injection defense + mismatched repo rejection, and (6) INSUFFICIENT_EVIDENCE + trusted-time expiry fallback refund.
   ```
-  *(360 characters — fits cleanly inside the `0/500` limit)*
 
 - **CONTRACT LINK 1 (OPTIONAL):**
   ```text
-  https://explorer-studio.genlayer.com/address/0x0645f04f8Fb89451Fa0c2B3c6F5E4cbD724Fb531
+  https://explorer-studio.genlayer.com/address/0x9D8830F4A62d37D9Ca346e3f2D54b512B228fc4d
   ```
 - Click **`+ Add another deployment`** -> **CONTRACT LINK 2:**
   ```text
@@ -114,7 +113,7 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
 
 - **WEBSITE - REQUIRED:**
   ```text
-  https://deprecate-guard.vercel.app/
+  https://khezzed.github.io/DeprecateGuard/
   ```
 - **GITHUB:**
   ```text
@@ -131,9 +130,9 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
   ```
 - Click **`+ Add Evidence`** to attach direct proof artifacts:
   - **Proof Manifest (`deploy/proof.json`):** `https://github.com/khezzed/DeprecateGuard/blob/main/deploy/proof.json`
-  - **Scenario 1 (`ACCEPTED`):** `https://explorer-studio.genlayer.com/tx/0xc39597f74e279ea29f6637a4471294b6c5f32701314dee90f9036d0b29914fd5`
-  - **Scenario 2 (`REJECTED_VAGUE`):** `https://explorer-studio.genlayer.com/tx/0xb73415e7075773cefcd8e500a38a88993fbeaf2eb97b2521ac339fa53658aa23`
-  - **Scenario 3 (`BREAKING_CONFIRMED`):** `https://explorer-studio.genlayer.com/tx/0x5246e1f868746b57d6566a2786876617ae51763aa0d09a24d2a3d5c1cd86fe10`
-  - **Scenario 4 (`NON_BREAKING`):** `https://explorer-studio.genlayer.com/tx/0x8a2852ae7c25976800032db41e412b8e5ae936b3e69733c744a5f429ba380ea7`
-  - **Scenario 5 (`NON_BREAKING` Injection Defense):** `https://explorer-studio.genlayer.com/tx/0x04d21a7e64ebc1dc3ae4e184d7d39b305f2b74e09cb1cdec88a437782912a3b6`
-  - **Scenario 6 (`INSUFFICIENT_EVIDENCE`):** `https://explorer-studio.genlayer.com/tx/0xc02ae20c49a468bcfa0d08d7acc02cffa267b0238c7c9bfae68a23607e5b174f`
+  - **Scenario 1 (`ACCEPTED`):** `https://explorer-studio.genlayer.com/tx/0x2622cb4ca4fc9aa7d68324fb242d192eb81451f940634d6a49a649bd7fe02219`
+  - **Scenario 2 (`REJECTED_VAGUE`):** `https://explorer-studio.genlayer.com/tx/0xe2cf3a052271ea08b9e0f6f6e16553df763bfb516411569722db9d6f51e2af80` (Native Withdrawal: `0xaf79de750f3f0fdd74e05df2577bd7e62843b9fcfc6bd0e6778460a02c478b5e`)
+  - **Scenario 3 (`BREAKING_CONFIRMED`):** `https://explorer-studio.genlayer.com/tx/0xbcb2d48e79d1c8a950b123abd6bec824418b754c77978c1a68f89fbe88788c92` (Native Bounty Payout: `0xaeb4b7f365256480cc75da6d1ac6e8c459cdb8622c2c7a01f7b5f051ffd25626`)
+  - **Scenario 4 (`NON_BREAKING`):** `https://explorer-studio.genlayer.com/tx/0x5de0423ad3738de5e9fa754de6e2e21dca61442a2cce2ee6a11023851993a622`
+  - **Scenario 5 (`NON_BREAKING` Injection Defense):** `https://explorer-studio.genlayer.com/tx/0xe0fc22e79332d45ecfcf42329f7efb8a6c7411470cd115fb6384843176f95709` (Repo Mismatch Rejection: `0x9a3609197f88073cf924f23ad9d5d71c1363ea7e6e4bac0e451d2f0393fef5de`)
+  - **Scenario 6 (`INSUFFICIENT_EVIDENCE`):** `https://explorer-studio.genlayer.com/tx/0xeb4471c9980a2fb66768862bd2ab178f10e8a3444a2cc358c5e1be32dd407784` (Trusted-Time Expiry: `0xa9af99732fa388fcb8ff1de2a33caeeb954bf3c0a7bad6053427c6e4b585e438`, Native Refund: `0x5831efbb052df6ac12f1936aeb36be115fce9b76f9d8bfbe7872dca027d7e977`)

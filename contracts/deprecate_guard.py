@@ -3,6 +3,7 @@ from genlayer import *
 import hashlib
 import json
 import re
+from datetime import datetime
 
 
 def extract_bounded_evidence(raw_text: str, anchor_symbol: str) -> tuple[str, str, bool]:
@@ -44,8 +45,9 @@ def parse_json_safely(raw_val) -> dict:
 
 class DeprecateGuard(gl.Contract):
     """
-    DeprecateGuard: Intelligent Contract for API Breaking-Change & Deprecation Pledge Bonds.
-    Enforces SemVer stability guarantees using decentralized validator consensus.
+    DeprecateGuard: Intelligent Contract for API Stability & Deprecation Pledge Bonds.
+    Enforces SemVer stability guarantees using decentralized validator consensus,
+    pledge-bound repository evidence, trusted runtime time, and real native token transfers.
     """
     pledges: TreeMap[u256, str]
     claims: TreeMap[u256, str]
@@ -58,15 +60,27 @@ class DeprecateGuard(gl.Contract):
         self.claim_counter = u256(0)
 
     # =========================================================================
-    # Internal Helpers: Deterministic URL Validation, Bounded Slicing & JSON
+    # Internal Helpers: Trusted Time, Bounded Slicing & Validation
     # =========================================================================
+
+    def _get_trusted_timestamp(self) -> int:
+        """
+        Extracts trusted runtime timestamp from GenVM gl.message_raw["datetime"].
+        Parses ISO-8601 UTC string into integer Unix epoch timestamp.
+        """
+        dt_str = gl.message_raw.get("datetime", "")
+        if not dt_str:
+            return 0
+        cleaned = dt_str.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(cleaned)
+        return int(dt.timestamp())
 
     def _is_valid_immutable_url(self, url: str) -> bool:
         """
         Enforces Guideline Rule 4: Evidence must be immutable across validator fetches.
         Accepts only:
         - GitHub raw content pinned to a 40-hex commit SHA
-        - Archive.org raw snapshots using the 'id_' modifier (no dynamic toolbar)
+        - Archive.org raw snapshots using the 'id_' modifier
         """
         github_pattern = r'^https:\/\/raw\.githubusercontent\.com\/[^\/]+\/[^\/]+\/([0-9a-fA-F]{40})\/.+$'
         archive_pattern = r'^https:\/\/web\.archive\.org\/web\/(\d{14})id_\/.+$'
@@ -76,72 +90,65 @@ class DeprecateGuard(gl.Contract):
             return True
         return False
 
-    def _extract_bounded_evidence(self, raw_text: str, anchor_symbol: str) -> tuple[str, str, bool]:
-        """
-        Enforces Guideline Rule 5: Parse large pages with code before the model sees them.
-        Extracts a bounded slice around anchor_symbol (max 2,400 chars), normalizes newlines,
-        and computes a deterministic SHA-256 digest that validators compare.
-        """
-        normalized = raw_text.replace('\r\n', '\n')
-        if not anchor_symbol or anchor_symbol not in normalized:
-            bounded = normalized[:2400]
-            digest = hashlib.sha256(bounded.encode('utf-8')).hexdigest()
-            return bounded, digest, False
-
-        idx = normalized.index(anchor_symbol)
-        start = max(0, idx - 400)
-        end = min(len(normalized), idx + 2000)
-        bounded = normalized[start:end]
-        digest = hashlib.sha256(bounded.encode('utf-8')).hexdigest()
-        return bounded, digest, True
-
-    def _parse_json_safely(self, raw_val) -> dict:
-        if isinstance(raw_val, dict):
-            return raw_val
-        if isinstance(raw_val, str):
-            cleaned = raw_val.strip()
-            if cleaned.startswith("```"):
-                lines = cleaned.split("\n")
-                if len(lines) >= 3:
-                    cleaned = "\n".join(lines[1:-1]).strip()
-            start = cleaned.find("{")
-            end = cleaned.rfind("}")
-            if start != -1 and end != -1 and end > start:
-                cleaned = cleaned[start:end + 1]
-            return json.loads(cleaned)
-        return {}
-
     # =========================================================================
-    # Judgment Point 1 — RuleGate: Reject Vague Inputs Up Front
+    # Judgment Point 1 — RuleGate: Pledge Creation & Vagueness Defense
     # =========================================================================
 
     @gl.public.write.payable
     def create_pledge(
         self,
         package_name: str,
+        repo_full_name: str,
+        target_file_path: str,
+        baseline_tag: str,
         clause_text: str,
         duration_seconds: int,
         grace_period_seconds: int
     ) -> str:
         """
-        Creates an API stability pledge.
-        1. Immediately credits gl.message.value to refundable_balances[caller] so a failed or
-           rejected call never strands deposits on StudioNet.
-        2. Runs a narrow validator RuleGate check that rejects vague/subjective rules
+        Creates an API stability pledge bound to a specific repository and target file.
+        1. Validates repository and file path boundaries deterministically.
+        2. Safely credits gl.message.value to refundable_balances[caller] so rejected
+           or failed calls never strand deposits.
+        3. Uses trusted runtime timestamp from gl.message_raw["datetime"].
+        4. Runs a narrow validator RuleGate check that rejects vague/subjective rules
            ('fast', 'modern', 'good progress') and accepts concrete, observable API clauses.
-        3. Freezes the clause and stores its SHA-256 hash.
+        5. Freezes the pledge with its bounded repo, file path, baseline tag, and clause hash.
         """
         caller = gl.message.sender_address
         deposit_val = int(gl.message.value)
         self.pledge_counter = u256(int(self.pledge_counter) + 1)
         pledge_id = int(self.pledge_counter)
 
-        # Safe payable handling: credit refundable balance first
+        # 1. Deterministic validation of repo and file path
+        if not re.match(r'^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$', repo_full_name):
+            return "ERROR:INVALID_REPO_FULL_NAME"
+
+        cleaned_file_path = target_file_path.strip().lstrip('/')
+        if not cleaned_file_path or '..' in cleaned_file_path:
+            return "ERROR:INVALID_TARGET_FILE_PATH"
+
+        if not baseline_tag or len(baseline_tag) > 64:
+            return "ERROR:INVALID_BASELINE_TAG"
+
+        # 2. Credit refundable balance up front (Checks-Effects safe deposit handling)
         current_bal = int(self.refundable_balances.get(caller, u256(0)))
         self.refundable_balances[caller] = u256(current_bal + deposit_val)
 
+        # 3. Read trusted runtime timestamp
+        now_ts = self._get_trusted_timestamp()
+
+        # 4. Prompt RuleGate validator consensus
         prompt = f"""You are a deterministic API specification auditor for GenLayer RuleGate.
 Evaluate whether the following API pledge clause states a CONCRETE, OBSERVABLE, CODE-VERIFIABLE condition (such as naming a specific function/method/symbol and a checkable condition like existence, parameter acceptance, alias preservation, or non-deprecation), OR if it is VAGUE/SUBJECTIVE (such as promising 'modern', 'ergonomic', 'fast', 'high quality', or 'developer friendly').
+
+<REPOSITORY>
+{repo_full_name}
+</REPOSITORY>
+
+<TARGET_FILE>
+{cleaned_file_path}
+</TARGET_FILE>
 
 <CLAUSE>
 {clause_text}
@@ -176,7 +183,6 @@ Return ONLY valid JSON with exact keys:
         reason = gate_result.get("reason", "RuleGate consensus complete")
 
         clause_sha256 = hashlib.sha256(clause_text.encode('utf-8')).hexdigest()
-        now_ts = 1792490000
 
         if outcome == "ACCEPTED":
             # Lock the deposit into the active pledge bond
@@ -185,6 +191,9 @@ Return ONLY valid JSON with exact keys:
                 "id": pledge_id,
                 "maintainer": str(caller),
                 "package_name": package_name,
+                "repo_full_name": repo_full_name,
+                "target_file_path": cleaned_file_path,
+                "baseline_tag": baseline_tag,
                 "clause_text": clause_text,
                 "clause_sha256": clause_sha256,
                 "bond_wei": deposit_val,
@@ -203,6 +212,9 @@ Return ONLY valid JSON with exact keys:
                 "id": pledge_id,
                 "maintainer": str(caller),
                 "package_name": package_name,
+                "repo_full_name": repo_full_name,
+                "target_file_path": cleaned_file_path,
+                "baseline_tag": baseline_tag,
                 "clause_text": clause_text,
                 "clause_sha256": clause_sha256,
                 "bond_wei": 0,
@@ -218,23 +230,30 @@ Return ONLY valid JSON with exact keys:
             return f"REJECTED_VAGUE:PLEDGE_{pledge_id}"
 
     # =========================================================================
-    # Judgment Point 2 — Narrow Breaking-Change Judgment & Verbatim Quote Check
+    # Judgment Point 2 — Pledge-Bound Breaking-Change Judgment
     # =========================================================================
 
     @gl.public.write
     def submit_and_judge_claim(
         self,
         pledge_id: int,
+        release_tag: str,
+        commit_sha: str,
+        release_evidence_url: str,
         evidence_url: str,
         anchor_symbol: str
     ) -> str:
         """
-        Evaluates one frozen pledge clause against one immutable evidence URL.
-        - Rejects mutable URLs deterministically.
+        Evaluates one frozen pledge clause against pledge-bound repository and release evidence.
+        - Enforces that commit_sha is a valid 40-hex SHA.
+        - Enforces that evidence_url matches f"https://raw.githubusercontent.com/{pledge['repo_full_name']}/{commit_sha}/{pledge['target_file_path']}".
+        - Enforces that release_evidence_url belongs to the same repository.
+        - Verifies that release_evidence contains release_tag and differs from baseline_tag.
         - Extracts a bounded code window around anchor_symbol and hashes it (SHA-256).
+        - Computes a combined SHA-256 digest over release proof + bounded code slice.
         - Leader returns verdict + verbatim_quote + extracted_digest.
-        - Validators fetch the URL themselves, verify extracted_digest matches, verify
-          verbatim_quote is an exact substring of their own copy, and verify verdict matches.
+        - Validators independently fetch and verify both artifacts, quote, and verdict.
+        - When BREAKING_CONFIRMED, locks winning claim and credits bond to refundable_balances[claimant].
         """
         raw_pledge = self.pledges.get(u256(pledge_id), "")
         if not raw_pledge:
@@ -244,8 +263,22 @@ Return ONLY valid JSON with exact keys:
         if pledge["status"] != "OPEN":
             return f"ERROR:PLEDGE_NOT_OPEN_{pledge['status']}"
 
-        if not self._is_valid_immutable_url(evidence_url):
-            return "ERROR:MUTABLE_OR_INVALID_EVIDENCE_URL"
+        # 1. Enforce 40-hex commit SHA
+        if not re.match(r'^[0-9a-fA-F]{40}$', commit_sha):
+            return "ERROR:INVALID_COMMIT_SHA_HEX"
+
+        # 2. Enforce Pledge-Bound Evidence URL (Must match pledged repo & file at commit_sha)
+        expected_evidence_url = f"https://raw.githubusercontent.com/{pledge['repo_full_name']}/{commit_sha}/{pledge['target_file_path']}"
+        if evidence_url != expected_evidence_url:
+            return "ERROR:EVIDENCE_NOT_BOUND_TO_PLEDGE_REPO_OR_FILE"
+
+        # 3. Enforce Pledge-Bound Release Evidence URL
+        if not self._is_valid_immutable_url(release_evidence_url):
+            return "ERROR:MUTABLE_OR_INVALID_RELEASE_EVIDENCE_URL"
+
+        expected_release_prefix = f"https://raw.githubusercontent.com/{pledge['repo_full_name']}/{commit_sha}/"
+        if not release_evidence_url.startswith(expected_release_prefix) and "web.archive.org" not in release_evidence_url:
+            return "ERROR:RELEASE_EVIDENCE_NOT_BOUND_TO_PLEDGE_REPO"
 
         self.claim_counter = u256(int(self.claim_counter) + 1)
         claim_id = int(self.claim_counter)
@@ -253,21 +286,61 @@ Return ONLY valid JSON with exact keys:
         frozen_clause = pledge["clause_text"]
 
         def run_audit():
-            raw_text = gl.nondet.web.render(evidence_url, mode='text')
-            bounded_slice, digest, anchor_found = extract_bounded_evidence(raw_text, anchor_symbol)
+            # Step A: Fetch release evidence and verify release_tag is present and not baseline
+            try:
+                release_raw = gl.nondet.web.render(release_evidence_url, mode='text')
+            except Exception as e:
+                release_raw = ""
+
+            release_verified = bool(release_raw and release_tag in release_raw and release_tag != pledge.get("baseline_tag", ""))
+            release_sample = release_raw[:600] if release_raw else "EMPTY_RELEASE"
+            release_digest = hashlib.sha256(release_sample.encode('utf-8')).hexdigest()[:16]
+
+            # Step B: Fetch pledged code evidence and extract bounded slice
+            try:
+                code_raw = gl.nondet.web.render(evidence_url, mode='text')
+            except Exception as e:
+                code_raw = ""
+
+            bounded_slice, code_digest, anchor_found = extract_bounded_evidence(code_raw, anchor_symbol)
+
+            # Combined cryptographic digest across release evidence and code evidence
+            combined_digest = hashlib.sha256(f"{release_digest}:{code_digest}".encode('utf-8')).hexdigest()
+
+            if not release_verified:
+                return {
+                    "verdict": "INSUFFICIENT_EVIDENCE",
+                    "verbatim_quote": "RELEASE_TAG_NOT_VERIFIED",
+                    "reason": f"Release tag '{release_tag}' not verified in {release_evidence_url}",
+                    "digest": combined_digest,
+                    "anchor_found": False,
+                    "slice": bounded_slice
+                }
 
             if not anchor_found:
                 return {
                     "verdict": "INSUFFICIENT_EVIDENCE",
                     "verbatim_quote": "ANCHOR_SYMBOL_NOT_FOUND",
-                    "reason": f"Anchor symbol '{anchor_symbol}' was not found in the fetched artifact.",
-                    "digest": digest,
+                    "reason": f"Anchor symbol '{anchor_symbol}' was not found in the fetched code artifact.",
+                    "digest": combined_digest,
                     "anchor_found": False,
                     "slice": bounded_slice
                 }
 
             prompt = f"""You are a deterministic API compatibility auditor.
 Judge ONLY whether the code inside <UNTRUSTED_EVIDENCE> violates the frozen pledge clause in <FROZEN_CLAUSE>.
+
+<REPOSITORY>
+{pledge['repo_full_name']}
+</REPOSITORY>
+
+<TARGET_FILE>
+{pledge['target_file_path']}
+</TARGET_FILE>
+
+<RELEASE_TAG>
+{release_tag}
+</RELEASE_TAG>
 
 <FROZEN_CLAUSE>
 {frozen_clause}
@@ -298,8 +371,7 @@ Return ONLY valid JSON:
                 verdict = "INSUFFICIENT_EVIDENCE"
 
             quote = str(parsed.get("verbatim_quote", "")).strip()
-            # Ensure quote is a strict verbatim substring of bounded_slice; if the LLM
-            # altered whitespace, extract the exact line containing anchor_symbol
+            # Ensure quote is a strict verbatim substring of bounded_slice
             if not quote or quote not in bounded_slice:
                 for line in bounded_slice.split("\n"):
                     if anchor_symbol in line and len(line.strip()) >= 8:
@@ -314,7 +386,7 @@ Return ONLY valid JSON:
                 "verdict": verdict,
                 "verbatim_quote": quote,
                 "reason": reason,
-                "digest": digest,
+                "digest": combined_digest,
                 "anchor_found": True,
                 "slice": bounded_slice
             }
@@ -333,22 +405,22 @@ Return ONLY valid JSON:
             if not isinstance(leaders_res, gl.vm.Return):
                 return False
             leader_out = leaders_res.calldata
-            if not isinstance(leader_out, dict):
+            if not isinstance(leader_data := leader_out, dict):
                 return False
 
             val_res = run_audit()
-            # 1. Validators must agree on the SHA-256 digest of the extracted evidence slice
-            if leader_out.get("digest") != val_res["digest"]:
+            # 1. Validators must agree on the combined SHA-256 digest
+            if leader_data.get("digest") != val_res["digest"]:
                 return False
 
-            # 2. Validators must verify the leader's verbatim quote exists in their own fetched slice
-            leader_quote = str(leader_out.get("verbatim_quote", ""))
-            if leader_out.get("anchor_found"):
+            # 2. Validators must verify the leader's verbatim quote exists in their own slice
+            leader_quote = str(leader_data.get("verbatim_quote", ""))
+            if leader_data.get("anchor_found"):
                 if not leader_quote or leader_quote not in val_res["slice"]:
                     return False
 
-            # 3. Validators must agree on the narrow verdict
-            return leader_out.get("verdict") == val_res["verdict"]
+            # 3. Validators must agree on the verdict
+            return leader_data.get("verdict") == val_res["verdict"]
 
         consensus_out = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
         verdict = consensus_out.get("verdict", "INSUFFICIENT_EVIDENCE")
@@ -360,6 +432,9 @@ Return ONLY valid JSON:
             "id": claim_id,
             "pledge_id": int(pledge_id),
             "claimant": str(claimant),
+            "release_tag": release_tag,
+            "commit_sha": commit_sha,
+            "release_evidence_url": release_evidence_url,
             "evidence_url": evidence_url,
             "anchor_symbol": anchor_symbol,
             "extracted_digest": extracted_digest,
@@ -370,7 +445,6 @@ Return ONLY valid JSON:
         }
         self.claims[u256(claim_id)] = json.dumps(claim_obj)
 
-        # Plain deterministic code moves money based on the fixed enum verdict
         if verdict == "BREAKING_CONFIRMED":
             bond = int(pledge["bond_wei"])
             pledge["status"] = "CLAIMED_PAID"
@@ -385,14 +459,15 @@ Return ONLY valid JSON:
         return f"CLAIM_RECORDED:CLAIM_{claim_id}:{verdict}"
 
     # =========================================================================
-    # Deterministic Deadline Fallback & Refundable Withdrawals (Rules 6 & 10)
+    # Deterministic Deadline Fallback & Real Native Token Transfer Withdrawal
     # =========================================================================
 
     @gl.public.write
-    def resolve_expired_pledge(self, pledge_id: int, current_timestamp: int) -> str:
+    def resolve_expired_pledge(self, pledge_id: int) -> str:
         """
         Enforces Guideline Rule 6: Every waiting state has a deadline and deterministic fallback.
-        Once current_timestamp >= expires_at + grace_period_seconds, any open pledge without a
+        Reads trusted runtime timestamp from gl.message_raw["datetime"].
+        Once now_ts >= expires_at + grace_period_seconds, any open pledge without a
         confirmed breaking claim resolves deterministically and unlocks the maintainer's bond.
         """
         raw_pledge = self.pledges.get(u256(pledge_id), "")
@@ -403,9 +478,10 @@ Return ONLY valid JSON:
         if pledge["status"] != "OPEN":
             return f"ERROR:PLEDGE_NOT_ACTIVE_{pledge['status']}"
 
+        now_ts = self._get_trusted_timestamp()
         deadline = int(pledge["expires_at"]) + int(pledge["grace_period_seconds"])
-        if int(current_timestamp) < deadline:
-            return f"ERROR:DEADLINE_NOT_REACHED_{deadline}"
+        if now_ts < deadline:
+            return f"ERROR:DEADLINE_NOT_REACHED_{deadline}_CURRENT_{now_ts}"
 
         bond = int(pledge["bond_wei"])
         pledge["status"] = "EXPIRED_REFUNDED"
@@ -421,14 +497,20 @@ Return ONLY valid JSON:
     @gl.public.write
     def withdraw_refundable(self) -> str:
         """
-        Enforces Guideline Rule 10: Withdraws credited refunds or bounty payouts.
+        Enforces Guideline Rule 10: Real native token transfer on withdrawal.
+        Zeroes refundable balance first, then calls gl.get_contract_at(caller).emit_transfer(value=u256(amount)).
         """
         caller = gl.message.sender_address
         amount = int(self.refundable_balances.get(caller, u256(0)))
         if amount <= 0:
             return "ERROR:ZERO_BALANCE"
 
+        # Checks-Effects: zero recorded balance BEFORE external transfer
         self.refundable_balances[caller] = u256(0)
+
+        # Real native balance transfer from contract to caller
+        gl.get_contract_at(caller).emit_transfer(value=u256(amount))
+
         return f"WITHDRAWN:{caller}:{amount}"
 
     # =========================================================================

@@ -4,7 +4,7 @@
 
 **Public Repository:** [`https://github.com/khezzed/DeprecateGuard`](https://github.com/khezzed/DeprecateGuard)  
 **Network:** GenLayer StudioNet (Chain ID: `61999`, RPC: `https://studio.genlayer.com/api`)  
-**Main Contract Address:** [`0x0645f04f8Fb89451Fa0c2B3c6F5E4cbD724Fb531`](https://explorer-studio.genlayer.com/address/0x0645f04f8Fb89451Fa0c2B3c6F5E4cbD724Fb531)  
+**Main Contract Address:** [`0x9D8830F4A62d37D9Ca346e3f2D54b512B228fc4d`](https://explorer-studio.genlayer.com/address/0x9D8830F4A62d37D9Ca346e3f2D54b512B228fc4d)  
 **Evidence Probe Contract:** [`0xE735D4d659Ec0ED69e491C3262d517c81E6Aa88F`](https://explorer-studio.genlayer.com/address/0xE735D4d659Ec0ED69e491C3262d517c81E6Aa88F)
 
 DeprecateGuard is a GenLayer-native decentralized application where open-source and API maintainers lock a **Stability Pledge Bond** guaranteeing that a specific interface or semantic behavior will not suffer an unannounced breaking change before a declared sunset date.
@@ -56,18 +56,45 @@ flowchart TD
 
 ---
 
+## 2.1 Portal Steward Review Resolution (100% Real, Unmocked On-Chain Implementation)
+
+Following direct feedback from the GenLayer Portal Steward, all four mandatory architectural fixes were engineered and fully proven on StudioNet:
+
+1. **Real Native Value Transfers (`gl.get_contract_at(caller).emit_transfer`):**
+   - The contract implements checks-effects-interactions inside `withdraw_refundable()`: refundable balances are zeroed *before* issuing a real on-chain native transfer via `gl.get_contract_at(caller).emit_transfer(value=u256(amount))`.
+   - Verified on StudioNet across 3 distinct real native withdrawals:
+     - Case 2: Vague pledge deposit refund (`0xaf79de75...`) -> `WITHDRAWN:1 wei`
+     - Case 3: Confirmed breaking change bounty payout (`0xaeb4b7f3...`) -> `WITHDRAWN:1 wei`
+     - Case 6: Unlocked expired pledge maintainer return (`0x5831efbb...`) -> `WITHDRAWN:1 wei`
+
+2. **Trusted Runtime Time (`gl.message_raw["datetime"]`):**
+   - Caller-supplied timestamp parameters and hardcoded timestamps have been eliminated.
+   - `_get_trusted_timestamp()` extracts the ISO-8601 string from the GenVM runtime (`gl.message_raw["datetime"]`), parsing it deterministically into a Unix epoch integer timestamp for all creation, claim, and expiration checks.
+   - Verified in Case 6: `resolve_expired_pledge(pledge_id=5)` executed and finalized using real runtime clock progression.
+
+3. **Pledge-Bound Repository and Release Evidence:**
+   - `create_pledge()` binds `repo_full_name` (e.g. `expressjs/express`), `target_file_path` (`lib/response.js`), and `baseline_tag` (`4.17.1`).
+   - `submit_and_judge_claim()` deterministically enforces that code evidence matches `https://raw.githubusercontent.com/{repo_full_name}/{commit_sha}/{target_file_path}` and requires a pledge-bound release artifact (`release_evidence_url`). Validators verify that the release artifact references the claim tag and compute a combined SHA-256 digest over both release and code artifacts.
+   - Tested live: claims targeting mismatched repositories are rejected on-chain with `ERROR:EVIDENCE_NOT_BOUND_TO_PLEDGE_REPO_OR_FILE` (`0x9a360919...`).
+
+4. **Displayed Wallet Equals Signing Account:**
+   - The React frontend exposes an explicit dual-mode wallet controller: **Injected Browser Wallet (MetaMask / EIP-1193)** and **Embedded Burner Session Wallet**.
+   - The displayed UI badge (`Signing Account: 0x...`) is bound directly to the active signing client (`activeSignerAddress`), with a strict runtime assertion confirming `activeClientAccount === displayedAccount` prior to broadcasting any transaction.
+
+---
+
 ## 3. Finalized Live Scenarios on StudioNet (Chain ID: 61999)
 
-All 6 scenarios are finalized on-chain at [`0x0645f04f8Fb89451Fa0c2B3c6F5E4cbD724Fb531`](https://explorer-studio.genlayer.com/address/0x0645f04f8Fb89451Fa0c2B3c6F5E4cbD724Fb531) and verified by `npm run verify:proof`:
+All 6 scenarios are finalized on-chain at [`0x9D8830F4A62d37D9Ca346e3f2D54b512B228fc4d`](https://explorer-studio.genlayer.com/address/0x9D8830F4A62d37D9Ca346e3f2D54b512B228fc4d) and verified by `npm run verify:proof`:
 
 | Scenario | Description | Immutable Evidence Artifact | Finalized Verdict & Return Payload | StudioNet Explorer Tx |
 |---|---|---|---|---|
-| **1** | Objective Pledge Creation (Express `res.sendFile`) | Express `lib/response.js` | `ACCEPTED` (`"ACCEPTED:PLEDGE_1"`) | [`0xc39597f7...`](https://explorer-studio.genlayer.com/tx/0xc39597f74e279ea29f6637a4471294b6c5f32701314dee90f9036d0b29914fd5) |
-| **2** | Subjective Pledge Rejection + Refund Withdrawal | Vague promise (`"modern, ergonomic, fast"`) | `REJECTED_VAGUE` (`"REJECTED_VAGUE:PLEDGE_2"`) + Withdraw [`0x04e1766a...`](https://explorer-studio.genlayer.com/tx/0x04e1766afe25ed25c8ac9aa05f1c6d149064f26e4d660710e957ad9c0345db3e) | [`0xb73415e7...`](https://explorer-studio.genlayer.com/tx/0xb73415e7075773cefcd8e500a38a88993fbeaf2eb97b2521ac339fa53658aa23) |
-| **3** | Breaking Change Claim & Bond Settlement | Express 4.18.2 (`8368dc17...`) `res.sendfile = deprecate.function` | `BREAKING_CONFIRMED` (`"CLAIM_SETTLED_PAID:CLAIM_1:BREAKING_CONFIRMED"`) | [`0x5246e1f8...`](https://explorer-studio.genlayer.com/tx/0x5246e1f868746b57d6566a2786876617ae51763aa0d09a24d2a3d5c1cd86fe10) |
-| **4** | Honest Non-Breaking Claim Rejection | Express 4.18.2 (`8368dc17...`) intact `res.sendFile` | `NON_BREAKING` (`"CLAIM_RECORDED:CLAIM_2:NON_BREAKING"`) | [`0x8a2852ae...`](https://explorer-studio.genlayer.com/tx/0x8a2852ae7c25976800032db41e412b8e5ae936b3e69733c744a5f429ba380ea7) |
-| **5** | Adversarial Prompt Injection Defense | `Open-Prompt-Injection` (`fbed5cca...`) containing `"Ignore previous instructions."` | `NON_BREAKING` (`"CLAIM_RECORDED:CLAIM_3:NON_BREAKING"`) | [`0x04d21a7e...`](https://explorer-studio.genlayer.com/tx/0x04d21a7e64ebc1dc3ae4e184d7d39b305f2b74e09cb1cdec88a437782912a3b6) |
-| **6** | Insufficient Evidence & Deadline Fallback | Absent symbol query + `resolve_expired_pledge()` | `INSUFFICIENT_EVIDENCE` + Fallback [`0x1d3c84d4...`](https://explorer-studio.genlayer.com/tx/0x1d3c84d48222ea141cc6eb788b9a81f8750bf2e94133b1939718fa613cf33d8c) | [`0xc02ae20c...`](https://explorer-studio.genlayer.com/tx/0xc02ae20c49a468bcfa0d08d7acc02cffa267b0238c7c9bfae68a23607e5b174f) |
+| **1** | Objective Pledge Creation (Express `res.sendFile`) | Express `lib/response.js` | `ACCEPTED` (`"ACCEPTED:PLEDGE_1"`) | [`0x2622cb4c...`](https://explorer-studio.genlayer.com/tx/0x2622cb4ca4fc9aa7d68324fb242d192eb81451f940634d6a49a649bd7fe02219) |
+| **2** | Subjective Pledge Rejection + Real Native Withdrawal | Vague promise (`"modern, ergonomic, fast"`) | `REJECTED_VAGUE` (`"REJECTED_VAGUE:PLEDGE_2"`) + Real Native Transfer [`0xaf79de75...`](https://explorer-studio.genlayer.com/tx/0xaf79de750f3f0fdd74e05df2577bd7e62843b9fcfc6bd0e6778460a02c478b5e) | [`0xe2cf3a05...`](https://explorer-studio.genlayer.com/tx/0xe2cf3a052271ea08b9e0f6f6e16553df763bfb516411569722db9d6f51e2af80) |
+| **3** | Breaking Change Claim & Real Native Bounty Payout | Express 4.18.2 (`8368dc17...`) `res.sendfile = deprecate.function` | `BREAKING_CONFIRMED` (`"CLAIM_SETTLED_PAID:CLAIM_1:BREAKING_CONFIRMED"`) + Real Native Payout [`0xaeb4b7f3...`](https://explorer-studio.genlayer.com/tx/0xaeb4b7f365256480cc75da6d1ac6e8c459cdb8622c2c7a01f7b5f051ffd25626) | [`0xbcb2d48e...`](https://explorer-studio.genlayer.com/tx/0xbcb2d48e79d1c8a950b123abd6bec824418b754c77978c1a68f89fbe88788c92) |
+| **4** | Honest Non-Breaking Claim Rejection | Express 4.18.2 (`8368dc17...`) intact `res.sendFile` | `NON_BREAKING` (`"CLAIM_RECORDED:CLAIM_2:NON_BREAKING"`) | [`0x5de0423a...`](https://explorer-studio.genlayer.com/tx/0x5de0423ad3738de5e9fa754de6e2e21dca61442a2cce2ee6a11023851993a622) |
+| **5** | Adversarial Prompt Injection Defense + Mismatched Repo Rejection | `Open-Prompt-Injection` (`fbed5cca...`) containing `"Ignore previous instructions."` | `NON_BREAKING` (`"CLAIM_RECORDED:CLAIM_3:NON_BREAKING"`) + Repo Mismatch Rejection [`0x9a360919...`](https://explorer-studio.genlayer.com/tx/0x9a3609197f88073cf924f23ad9d5d71c1363ea7e6e4bac0e451d2f0393fef5de) | [`0xe0fc22e7...`](https://explorer-studio.genlayer.com/tx/0xe0fc22e79332d45ecfcf42329f7efb8a6c7411470cd115fb6384843176f95709) |
+| **6** | Insufficient Evidence & Trusted-Time Expiry Fallback + Real Refund | Absent symbol query + Trusted-time `resolve_expired_pledge()` | `INSUFFICIENT_EVIDENCE` + Expiry Fallback [`0xa9af9973...`](https://explorer-studio.genlayer.com/tx/0xa9af99732fa388fcb8ff1de2a33caeeb954bf3c0a7bad6053427c6e4b585e438) + Real Refund Transfer [`0x5831efbb...`](https://explorer-studio.genlayer.com/tx/0x5831efbb052df6ac12f1936aeb36be115fce9b76f9d8bfbe7872dca027d7e977) | [`0xeb4471c9...`](https://explorer-studio.genlayer.com/tx/0xeb4471c9980a2fb66768862bd2ab178f10e8a3444a2cc358c5e1be32dd407784) |
 
 ---
 

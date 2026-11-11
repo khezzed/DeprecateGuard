@@ -3,6 +3,7 @@ import { Shield, ExternalLink, Github, Layers, PlusCircle, Database } from 'luci
 import { LiveContractReader } from './components/LiveContractReader';
 import { ProofInspector } from './components/ProofInspector';
 import { WalletActionPanel } from './components/WalletActionPanel';
+import { MAIN_CONTRACT_ADDRESS } from './lib/genlayerClient';
 import proofData from './data/recordedProof.json';
 
 type ActiveView = 'cases' | 'actions' | 'live';
@@ -11,10 +12,10 @@ export const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ActiveView>('cases');
 
   const mainAddress =
-    proofData.contracts.mainContract.address || '0x0645f04f8Fb89451Fa0c2B3c6F5E4cbD724Fb531';
+    proofData.contracts.mainContract.address || MAIN_CONTRACT_ADDRESS;
   const rpcUrl = proofData.network.rpcUrl || 'https://studio.genlayer.com/api';
-  const recordedStats = (proofData.contracts.mainContract as any).liveStats || {
-    total_pledges: 4,
+  const recordedStats = (proofData as any).contractStats || {
+    total_pledges: 5,
     total_claims: 4
   };
 

@@ -8,8 +8,10 @@ async function main() {
   console.log(`Using Deployer Account: ${account.address}`);
 
   const state = loadState();
-  if (state.mainContractAddress) {
-    console.log(`DeprecateGuard already deployed at: ${state.mainContractAddress}`);
+  const force = process.argv.includes('--force');
+
+  if (state.mainContractAddress && !force) {
+    console.log(`DeprecateGuard already deployed at: ${state.mainContractAddress} (use --force to redeploy)`);
     return;
   }
 
@@ -19,7 +21,12 @@ async function main() {
 
   const deployTx = await client.deployContract({ code });
   console.log(`Deploy Transaction Hash: ${deployTx}`);
-  saveState({ mainDeployTx: deployTx });
+  saveState({
+    mainDeployTx: deployTx,
+    previousContractAddress: state.mainContractAddress || null,
+    mainContractAddress: null,
+    cases: {} // Reset cases for new contract
+  });
 
   const finality = await waitForFinality(client, deployTx);
   const contractAddress = finality.contractAddress;

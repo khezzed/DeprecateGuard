@@ -87,6 +87,38 @@ async function main() {
       if (sc.extractedDigest) {
         console.log(`  SHA-256 Digest  : ${sc.extractedDigest}`);
       }
+
+      // Check auxiliary transactions if present
+      if (sc.withdrawTx) {
+        console.log(`  Auditing Real Native Withdrawal Tx: ${sc.withdrawTx}`);
+        const wTx = await client.getTransaction({ hash: sc.withdrawTx });
+        const wStatus = wTx.statusName || (wTx.consensus_history?.current_status_changes?.includes('FINALIZED') ? 'FINALIZED' : 'PENDING');
+        const wLr = wTx.consensus_data?.leader_receipt?.[0];
+        const wExec = wLr?.execution_result || 'UNKNOWN';
+        const wReadable = wLr?.result?.payload?.readable || '';
+        if (wStatus === 'FINALIZED' && wExec === 'SUCCESS' && wReadable.includes('WITHDRAWN:')) {
+          console.log(`    -> Real native transfer verified on-chain: ${wReadable}`);
+        } else {
+          console.error(`    -> [FAIL] Real native transfer check failed: status=${wStatus}, exec=${wExec}, payload=${wReadable}`);
+          continue;
+        }
+      }
+
+      if (sc.expireTx) {
+        console.log(`  Auditing Trusted-Time Expiry Tx: ${sc.expireTx}`);
+        const eTx = await client.getTransaction({ hash: sc.expireTx });
+        const eStatus = eTx.statusName || (eTx.consensus_history?.current_status_changes?.includes('FINALIZED') ? 'FINALIZED' : 'PENDING');
+        const eLr = eTx.consensus_data?.leader_receipt?.[0];
+        const eExec = eLr?.execution_result || 'UNKNOWN';
+        const eReadable = eLr?.result?.payload?.readable || '';
+        if (eStatus === 'FINALIZED' && eExec === 'SUCCESS' && eReadable.includes('PLEDGE_EXPIRED_REFUNDED:')) {
+          console.log(`    -> Trusted-time expiry fallback verified on-chain: ${eReadable}`);
+        } else {
+          console.error(`    -> [FAIL] Expiry fallback check failed: status=${eStatus}, exec=${eExec}, payload=${eReadable}`);
+          continue;
+        }
+      }
+
       console.log(`  Explorer Link   : https://explorer-studio.genlayer.com/tx/${sc.txHash}`);
       console.log(`  [PASS] Scenario ${sc.id} verified 100% on StudioNet.\n`);
       passedCases++;
@@ -98,7 +130,7 @@ async function main() {
   console.log('===============================================================');
   console.log(`Verification Summary: ${passedCases}/${totalCases} Scenarios Verified on StudioNet`);
   if (passedCases === totalCases) {
-    console.log('STATUS: ALL LIVE CLAIMS, QUOTES, DIGESTS & JUDGMENTS VERIFIED');
+    console.log('STATUS: ALL LIVE CLAIMS, QUOTES, DIGESTS, TRANSFERS & TIMESTAMPS VERIFIED');
     console.log('===============================================================');
     process.exit(0);
   } else {

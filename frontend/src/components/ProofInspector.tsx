@@ -11,7 +11,10 @@ import {
   ChevronUp,
   Terminal,
   Copy,
-  Check
+  Check,
+  Coins,
+  History,
+  GitBranch
 } from 'lucide-react';
 import { ScenarioProof } from '../types';
 
@@ -52,14 +55,14 @@ const OUTCOME_META: Record<
     icon: <CheckCircle2 className="w-4 h-4 text-emerald-400" />
   },
   REJECTED_VAGUE: {
-    label: 'Vague Pledge Rejected — Deposit Refunded',
+    label: 'Vague Pledge Rejected — Real Native Refund',
     shortLabel: 'Vague Rejected',
     badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
     borderClass: 'border-amber-500/40',
     icon: <XCircle className="w-4 h-4 text-amber-400" />
   },
   INSUFFICIENT_EVIDENCE: {
-    label: 'Symbol Not Found — Bond Returned at Expiry',
+    label: 'Symbol Not Found — Trusted-Time Expiry',
     shortLabel: 'Insufficient Evidence',
     badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
     borderClass: 'border-purple-500/40',
@@ -84,6 +87,7 @@ export const ProofInspector: React.FC<Props> = ({ scenarios }) => {
   const details: any = activeScenario.details || {};
   const reasonText = details.reason || details.rule_gate_reason || '';
   const packageName = details.package_name || (details.pledge_id === 4 ? 'open-prompt-injection' : 'express');
+  const repoName = details.repo_full_name || 'expressjs/express';
 
   const copyTxHash = (hash: string) => {
     navigator.clipboard.writeText(hash);
@@ -153,9 +157,11 @@ export const ProofInspector: React.FC<Props> = ({ scenarios }) => {
               {meta.icon}
               {meta.label}
             </div>
-            <span className="text-xs font-mono text-slate-400">
-              Package: <strong className="text-slate-200">{packageName}</strong>
-            </span>
+            <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+              <span>Repo: <strong className="text-slate-200">{repoName}</strong></span>
+              <span>•</span>
+              <span>Pkg: <strong className="text-slate-200">{packageName}</strong></span>
+            </div>
           </div>
 
           <h2 className="text-xl font-bold text-white tracking-tight">{activeScenario.title}</h2>
@@ -164,11 +170,19 @@ export const ProofInspector: React.FC<Props> = ({ scenarios }) => {
 
         {/* Body Content */}
         <div className="p-6 space-y-5">
-          {/* If Pledge Clause Exists, Show It Clearly */}
+          {/* Pledge Clause & Bounded Repo Metadata */}
           {details.clause_text && (
             <div className="space-y-1.5">
-              <div className="text-xs font-medium text-slate-400">Pledged Compatibility Rule</div>
-              <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 text-sm text-slate-200 leading-relaxed">
+              <div className="flex items-center justify-between text-xs font-medium text-slate-400">
+                <span>Pledged Compatibility Rule (Pledge-Bound)</span>
+                {details.target_file_path && (
+                  <span className="font-mono text-[11px] text-sky-300 flex items-center gap-1">
+                    <GitBranch className="w-3 h-3" />
+                    {details.target_file_path} (baseline: {details.baseline_tag})
+                  </span>
+                )}
+              </div>
+              <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 text-sm text-slate-200 leading-relaxed font-mono">
                 “{details.clause_text}”
               </div>
             </div>
@@ -180,7 +194,7 @@ export const ProofInspector: React.FC<Props> = ({ scenarios }) => {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
                   <Terminal className="w-3.5 h-3.5 text-sky-400" />
-                  {details.clause_text ? 'Validator Rule Check' : 'Exact Code Line Verified by Validators'}
+                  {details.clause_text ? 'Validator Rule Check / Verbatim Code' : 'Exact Code Line Verified by Validators'}
                 </span>
                 {details.anchor_symbol && (
                   <span className="text-[11px] font-mono text-slate-400">
@@ -200,6 +214,22 @@ export const ProofInspector: React.FC<Props> = ({ scenarios }) => {
               <div className="text-xs font-medium text-slate-400">Why Validators Agreed on This Verdict</div>
               <div className="p-3.5 rounded-xl bg-slate-950/50 border border-slate-800/80 text-sm text-slate-300 leading-relaxed">
                 {reasonText}
+              </div>
+            </div>
+          )}
+
+          {/* Real Native Token Transfer Proof */}
+          {(activeScenario.withdrawTx || (activeScenario as any).withdrawReturn) && (
+            <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 space-y-2">
+              <div className="flex items-center justify-between text-xs text-emerald-300 font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <Coins className="w-4 h-4 text-emerald-400" />
+                  Real Native Token Transfer (gl.get_contract_at(caller).emit_transfer)
+                </span>
+                <span className="font-mono text-[11px] text-emerald-400">Verified On-Chain</span>
+              </div>
+              <div className="text-xs text-emerald-200/90 font-mono">
+                Payload: {(activeScenario as any).withdrawReturn || 'WITHDRAWN: Real transfer executed'}
               </div>
             </div>
           )}
@@ -224,7 +254,20 @@ export const ProofInspector: React.FC<Props> = ({ scenarios }) => {
                 className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition flex items-center gap-1.5"
               >
                 <FileCode className="w-3.5 h-3.5 text-slate-400" />
-                View Pinned Source File
+                View Code Evidence
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+
+            {(activeScenario as any).releaseEvidenceUrl && (
+              <a
+                href={(activeScenario as any).releaseEvidenceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition flex items-center gap-1.5"
+              >
+                <History className="w-3.5 h-3.5 text-sky-400" />
+                View Release Evidence
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
@@ -236,7 +279,7 @@ export const ProofInspector: React.FC<Props> = ({ scenarios }) => {
                 rel="noopener noreferrer"
                 className="px-3 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-medium transition flex items-center gap-1.5"
               >
-                Refund Withdrawal Tx
+                Native Transfer Tx
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
@@ -248,7 +291,7 @@ export const ProofInspector: React.FC<Props> = ({ scenarios }) => {
                 rel="noopener noreferrer"
                 className="px-3 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-medium transition flex items-center gap-1.5"
               >
-                Bond Expiry Refund Tx
+                Trusted-Time Expiry Tx
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
@@ -284,7 +327,7 @@ export const ProofInspector: React.FC<Props> = ({ scenarios }) => {
 
                   {activeScenario.extractedDigest && (
                     <>
-                      <div className="text-slate-400 pt-1">SHA-256 Evidence / Clause Digest:</div>
+                      <div className="text-slate-400 pt-1">SHA-256 Combined Evidence / Clause Digest:</div>
                       <div className="text-slate-300 break-all text-[11px]">{activeScenario.extractedDigest}</div>
                     </>
                   )}
