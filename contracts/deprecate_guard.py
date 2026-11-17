@@ -107,9 +107,9 @@ class DeprecateGuard(gl.Contract):
     ) -> str:
         """
         Creates an API stability pledge bound to a specific repository and target file.
-        1. Validates repository and file path boundaries deterministically.
-        2. Safely credits gl.message.value to refundable_balances[caller] so rejected
-           or failed calls never strand deposits.
+        1. Safely credits gl.message.value to refundable_balances[caller] immediately up front
+           so that invalid inputs, validation errors, or rejected calls NEVER strand deposits.
+        2. Validates repository, file path boundaries, baseline tag, and duration deterministically.
         3. Uses trusted runtime timestamp from gl.message_raw["datetime"].
         4. Runs a narrow validator RuleGate check that rejects vague/subjective rules
            ('fast', 'modern', 'good progress') and accepts concrete, observable API clauses.
@@ -117,10 +117,13 @@ class DeprecateGuard(gl.Contract):
         """
         caller = gl.message.sender_address
         deposit_val = int(gl.message.value)
-        self.pledge_counter = u256(int(self.pledge_counter) + 1)
-        pledge_id = int(self.pledge_counter)
 
-        # 1. Deterministic validation of repo and file path
+        # 1. Credit refundable balance immediately up front (Checks-Effects safe deposit handling)
+        # Any payable call that fails validation or gets rejected must never strand caller funds.
+        current_bal = int(self.refundable_balances.get(caller, u256(0)))
+        self.refundable_balances[caller] = u256(current_bal + deposit_val)
+
+        # 2. Deterministic validation of inputs
         if not re.match(r'^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$', repo_full_name):
             return "ERROR:INVALID_REPO_FULL_NAME"
 
@@ -131,11 +134,17 @@ class DeprecateGuard(gl.Contract):
         if not baseline_tag or len(baseline_tag) > 64:
             return "ERROR:INVALID_BASELINE_TAG"
 
-        # 2. Credit refundable balance up front (Checks-Effects safe deposit handling)
-        current_bal = int(self.refundable_balances.get(caller, u256(0)))
-        self.refundable_balances[caller] = u256(current_bal + deposit_val)
+        if int(duration_seconds) <= 0:
+            return "ERROR:INVALID_DURATION_SECONDS"
 
-        # 3. Read trusted runtime timestamp
+        if int(grace_period_seconds) < 0:
+            return "ERROR:INVALID_GRACE_PERIOD_SECONDS"
+
+        # 3. Validation passed: allocate pledge ID
+        self.pledge_counter = u256(int(self.pledge_counter) + 1)
+        pledge_id = int(self.pledge_counter)
+
+        # 4. Read trusted runtime timestamp
         now_ts = self._get_trusted_timestamp()
 
         # 4. Prompt RuleGate validator consensus

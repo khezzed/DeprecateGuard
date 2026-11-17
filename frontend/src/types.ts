@@ -42,5 +42,17 @@ export interface ProofManifest {
     };
   };
   scenarios: ScenarioProof[];
+  invalidInputDepositProtectionProof?: {
+    invalidRepoTx: string;
+    invalidRepoReturn: string;
+    invalidPathTx: string;
+    invalidPathReturn: string;
+    invalidTagTx: string;
+    invalidTagReturn: string;
+    accumulatedBalanceWei: number;
+    withdrawTx: string;
+    withdrawReturn: string;
+    postWithdrawBalanceWei: number;
+  };
   verifiedAt: string;
 }

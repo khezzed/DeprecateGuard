@@ -23,6 +23,91 @@ async function main() {
   const cases = state.cases || {};
 
   // --------------------------------------------------------------------------
+  // Case 0: Invalid Input Deposit Protection (Gen. Dave Steward Remediation)
+  // Tests that all 3 invalid input paths safely credit refundable_balances and refund full deposits
+  // --------------------------------------------------------------------------
+  if (!cases.case0_invalidInputDepositSafety) {
+    console.log('\n--- Case 0: Testing Invalid Input Deposit Protection (All 3 Invalid Paths) ---');
+
+    console.log('1. Testing invalid repo_full_name ("invalid-repo-no-slash") with 1 wei deposit...');
+    const invalidRepoTx = await client.writeContract({
+      address: contractAddress,
+      functionName: 'create_pledge',
+      args: ['express', 'invalid-repo-no-slash', 'lib/response.js', '4.17.1', 'clause', 2592000, 86400],
+      value: 1n
+    });
+    console.log(`Invalid Repo Tx Hash: ${invalidRepoTx}`);
+    const invalidRepoFinality = await waitForFinality(client, invalidRepoTx);
+    console.log(`Invalid Repo Return: ${invalidRepoFinality.returnReadable}`);
+
+    console.log('2. Testing invalid target_file_path ("../secret.js") with 1 wei deposit...');
+    const invalidPathTx = await client.writeContract({
+      address: contractAddress,
+      functionName: 'create_pledge',
+      args: ['express', 'expressjs/express', '../secret.js', '4.17.1', 'clause', 2592000, 86400],
+      value: 1n
+    });
+    console.log(`Invalid Path Tx Hash: ${invalidPathTx}`);
+    const invalidPathFinality = await waitForFinality(client, invalidPathTx);
+    console.log(`Invalid Path Return: ${invalidPathFinality.returnReadable}`);
+
+    console.log('3. Testing invalid baseline_tag ("") with 1 wei deposit...');
+    const invalidTagTx = await client.writeContract({
+      address: contractAddress,
+      functionName: 'create_pledge',
+      args: ['express', 'expressjs/express', 'lib/response.js', '', 'clause', 2592000, 86400],
+      value: 1n
+    });
+    console.log(`Invalid Tag Tx Hash: ${invalidTagTx}`);
+    const invalidTagFinality = await waitForFinality(client, invalidTagTx);
+    console.log(`Invalid Tag Return: ${invalidTagFinality.returnReadable}`);
+
+    // Verify accumulated balance is 3 wei
+    const balRaw = await client.readContract({
+      address: contractAddress,
+      functionName: 'get_refundable_balance',
+      args: [account.address]
+    });
+    console.log(`Accumulated Refundable Balance on-chain: ${balRaw} wei (expected: 3)`);
+    if (Number(balRaw) !== 3) {
+      throw new Error(`Expected refundable balance of 3 wei, got: ${balRaw}`);
+    }
+
+    console.log('4. Calling withdraw_refundable() to transfer full 3 wei deposit back via native transfer...');
+    const withdrawTx = await client.writeContract({
+      address: contractAddress,
+      functionName: 'withdraw_refundable',
+      args: []
+    });
+    console.log(`Withdrawal Tx Hash: ${withdrawTx}`);
+    const withdrawFinality = await waitForFinality(client, withdrawTx);
+    console.log(`Withdrawal Finalized: ${withdrawFinality.returnReadable}`);
+
+    const postBalRaw = await client.readContract({
+      address: contractAddress,
+      functionName: 'get_refundable_balance',
+      args: [account.address]
+    });
+    console.log(`Post-Withdrawal Balance on-chain: ${postBalRaw} wei (expected: 0)`);
+
+    cases.case0_invalidInputDepositSafety = {
+      invalidRepoTx,
+      invalidRepoReturn: invalidRepoFinality.returnReadable,
+      invalidPathTx,
+      invalidPathReturn: invalidPathFinality.returnReadable,
+      invalidTagTx,
+      invalidTagReturn: invalidTagFinality.returnReadable,
+      accumulatedBalanceWei: 3,
+      withdrawTx,
+      withdrawReturn: withdrawFinality.returnReadable,
+      postWithdrawBalanceWei: Number(postBalRaw)
+    };
+    saveState({ cases });
+  } else {
+    console.log('[SKIP] Case 0 already verified:', cases.case0_invalidInputDepositSafety.withdrawTx);
+  }
+
+  // --------------------------------------------------------------------------
   // Case 1: Valid Objective Pledge Creation (RuleGate ACCEPTED)
   // --------------------------------------------------------------------------
   if (!cases.case1_pledgeValid) {
@@ -455,8 +540,10 @@ async function main() {
       fix1_realNativeTransfers: 'gl.get_contract_at(caller).emit_transfer(value=u256(amount)) executed on withdraw_refundable() for rejected deposits, settled breaking bounties, and expired pledge bond returns.',
       fix2_trustedRuntimeTime: 'gl.message_raw["datetime"] parsed via _get_trusted_timestamp(); caller timestamp removed from resolve_expired_pledge(pledge_id).',
       fix3_pledgeBoundRepositoryAndRelease: 'create_pledge binds repo_full_name, target_file_path, and baseline_tag; submit_and_judge_claim enforces exact commit SHA URL match, verifies release artifact tag, and computes combined SHA-256 digest.',
-      fix4_displayedWalletMatchesSigner: 'Signing account strictly exposed and matched with displayed account badge across embedded session and injected wallet modes.'
+      fix4_displayedWalletMatchesSigner: 'Signing account strictly exposed and matched with displayed account badge across embedded session and injected wallet modes.',
+      fix5_invalidInputDepositProtection: 'create_pledge safely credits refundable_balances[caller] immediately up front before any validation checks, ensuring that invalid repo_full_name, target_file_path, or baseline_tag never strand deposits and are immediately withdrawable via withdraw_refundable().'
     },
+    invalidInputDepositProtectionProof: cases.case0_invalidInputDepositSafety || null,
     scenarios: [
       {
         id: 1,

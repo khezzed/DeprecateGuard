@@ -4,7 +4,7 @@ export const STUDIONET_CHAIN_ID = 61999;
 export const STUDIONET_CHAIN_ID_HEX = '0xf22f';
 export const STUDIONET_RPC_URL = 'https://studio.genlayer.com/api';
 export const STUDIONET_EXPLORER_URL = 'https://explorer-studio.genlayer.com';
-export const MAIN_CONTRACT_ADDRESS = '0xEEDa967BeC7EB022350425C1D0c7c50107c06F1c';
+export const MAIN_CONTRACT_ADDRESS = '0xd975E69a3B2C4919Da5C8e72bE5EE42c233c1e81';
 
 const GITHUB_RAW_REGEX = /^https:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/([0-9a-fA-F]{40})\/.+$/;
 const ARCHIVE_ORG_RAW_REGEX = /^https:\/\/web\.archive\.org\/web\/(\d{14})id_\/.+$/;

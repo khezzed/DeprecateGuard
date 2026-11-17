@@ -48,6 +48,28 @@ async function main() {
     process.exit(1);
   }
 
+  // 2. Audit Invalid Input Deposit Protection Proof if present
+  if (proof.invalidInputDepositProtectionProof) {
+    const ip = proof.invalidInputDepositProtectionProof;
+    console.log('\n[Steward Audit] Auditing Invalid Input Deposit Protection On-Chain Proof...');
+    console.log(`  Invalid Repo Tx : ${ip.invalidRepoTx} -> ${ip.invalidRepoReturn}`);
+    console.log(`  Invalid Path Tx : ${ip.invalidPathTx} -> ${ip.invalidPathReturn}`);
+    console.log(`  Invalid Tag Tx  : ${ip.invalidTagTx} -> ${ip.invalidTagReturn}`);
+    console.log(`  Accumulated Wei : ${ip.accumulatedBalanceWei} wei`);
+    console.log(`  Withdrawal Tx   : ${ip.withdrawTx} -> ${ip.withdrawReturn}`);
+    console.log(`  Post-Withdrawal : ${ip.postWithdrawBalanceWei} wei`);
+
+    const wTx = await client.getTransaction({ hash: ip.withdrawTx });
+    const wStatus = wTx.statusName || (wTx.consensus_history?.current_status_changes?.includes('FINALIZED') ? 'FINALIZED' : 'PENDING');
+    const wExec = wTx.consensus_data?.leader_receipt?.[0]?.execution_result || 'UNKNOWN';
+    const wReadable = wTx.consensus_data?.leader_receipt?.[0]?.result?.payload?.readable || '';
+    if (wStatus === 'FINALIZED' && wExec === 'SUCCESS' && wReadable.includes('WITHDRAWN:')) {
+      console.log(`  [PASS] Invalid input deposit protection and native refund verified 100% on StudioNet.\n`);
+    } else {
+      console.error(`  [FAIL] Invalid input deposit refund check failed: status=${wStatus}, exec=${wExec}, payload=${wReadable}`);
+    }
+  }
+
   let totalCases = proof.scenarios.length;
   let passedCases = 0;
 

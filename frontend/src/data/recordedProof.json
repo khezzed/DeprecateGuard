@@ -12,8 +12,8 @@
   "contracts": {
     "mainContract": {
       "name": "DeprecateGuard",
-      "address": "0xEEDa967BeC7EB022350425C1D0c7c50107c06F1c",
-      "deployTx": "0x1ab8b9efcf8165ad9d36672eb1a3aea3217d24749193a7ae6af3b470fbdff5df"
+      "address": "0xd975E69a3B2C4919Da5C8e72bE5EE42c233c1e81",
+      "deployTx": "0x13a7420bf0da2a7d0c631a825103670d7d142a49092b797bc7a4b56bac94e923"
     }
   },
   "contractStats": {
@@ -25,14 +25,27 @@
     "fix1_realNativeTransfers": "gl.get_contract_at(caller).emit_transfer(value=u256(amount)) executed on withdraw_refundable() for rejected deposits, settled breaking bounties, and expired pledge bond returns.",
     "fix2_trustedRuntimeTime": "gl.message_raw[\"datetime\"] parsed via _get_trusted_timestamp(); caller timestamp removed from resolve_expired_pledge(pledge_id).",
     "fix3_pledgeBoundRepositoryAndRelease": "create_pledge binds repo_full_name, target_file_path, and baseline_tag; submit_and_judge_claim enforces exact commit SHA URL match, verifies release artifact tag, and computes combined SHA-256 digest.",
-    "fix4_displayedWalletMatchesSigner": "Signing account strictly exposed and matched with displayed account badge across embedded session and injected wallet modes."
+    "fix4_displayedWalletMatchesSigner": "Signing account strictly exposed and matched with displayed account badge across embedded session and injected wallet modes.",
+    "fix5_invalidInputDepositProtection": "create_pledge safely credits refundable_balances[caller] immediately up front before any validation checks, ensuring that invalid repo_full_name, target_file_path, or baseline_tag never strand deposits and are immediately withdrawable via withdraw_refundable()."
+  },
+  "invalidInputDepositProtectionProof": {
+    "invalidRepoTx": "0x72af1350e28e4e8a38efe47bfba87efad39400b640ba62a6ae9ac19b048f67f5",
+    "invalidRepoReturn": "\"ERROR:INVALID_REPO_FULL_NAME\"",
+    "invalidPathTx": "0xad0c4537f1ed5278d1dfe9ce2992ebf74dec7ed0985f16af46a11e409c514598",
+    "invalidPathReturn": "\"ERROR:INVALID_TARGET_FILE_PATH\"",
+    "invalidTagTx": "0x84ffe0b3bc633c3cf6dac85c75d6c0b2da56fd9848c7bcab252bce244a5b535a",
+    "invalidTagReturn": "\"ERROR:INVALID_BASELINE_TAG\"",
+    "accumulatedBalanceWei": 3,
+    "withdrawTx": "0x1be89d90b695331c1e28ebaa19befa736bbd7ad7748fa7fb79215f8f04831ea8",
+    "withdrawReturn": "\"WITHDRAWN:Address(\\\"0xc130A7a4C4F22b2644Eaa62F5D13F14c941860aC\\\"):3\"",
+    "postWithdrawBalanceWei": 0
   },
   "scenarios": [
     {
       "id": 1,
       "title": "Approved Stability Pledge for Express.js",
       "description": "Maintainer locks a stability pledge bond for Express.js res.sendFile(). Validators run RuleGate LLM check, confirm the commitment is concrete and code-verifiable, freeze repo and clause hash, and open the pledge.",
-      "txHash": "0x2481585086712952a749ea5b6947cddb8a6e9a9bb1566c1e65434b63cf2d5537",
+      "txHash": "0xfe2b837190ca96eafd82ff2c05344cdcccd005806c5b9a8ea53d0ea394fb49f3",
       "outcome": "ACCEPTED",
       "evidenceUrl": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
       "verbatimQuote": "res.sendFile = function sendFile(path, options, callback)",
@@ -47,24 +60,24 @@
         "clause_text": "In Express.js lib/response.js, the res.sendFile(path, options, callback) method must exist and accept (path, options, callback) arguments without being removed.",
         "clause_sha256": "0796cd863cc1afa58b8b72de3a8d0e96381cc287056dc464498836ccde503151",
         "bond_wei": 1,
-        "created_at": 1794399345,
-        "expires_at": 1796991345,
+        "created_at": 1794886169,
+        "expires_at": 1797478169,
         "grace_period_seconds": 86400,
         "status": "OPEN",
         "rule_gate_outcome": "ACCEPTED",
-        "rule_gate_reason": "Names res.sendFile(path, options, callback) in lib/response.js with a checkable existence/signature/non-removal condition."
+        "rule_gate_reason": "Names res.sendFile in lib/response.js and requires its existence and acceptance of path, options, and callback arguments."
       }
     },
     {
       "id": 2,
       "title": "Rejected Vague Marketing Pledge & Real Native Refund",
       "description": "Maintainer attempts vague pledge (\"modern, ergonomic, fast\"). Validators reject it up front. Maintainer executes withdraw_refundable() which issues a real on-chain native transfer via gl.get_contract_at(caller).emit_transfer.",
-      "txHash": "0xccf1320dacac1cd425bd983462051e64f954348bb23afe6021b4f7f606ca9147",
-      "withdrawTx": "0x4dcb7084e44aa52a4f8738bdfe81ed4521b8052aad54fc0d86745820ae9329fe",
+      "txHash": "0xf0ae0a0c6c9cc178692e0bd391c89b54dc81b1393f7b4a312ca30a56cb17c22d",
+      "withdrawTx": "0xe821b1211daa9bf17e7723c24a3bf47adac2c57e81a7d3a147b03bbd99e0d0a1",
       "withdrawReturn": "\"WITHDRAWN:Address(\\\"0xc130A7a4C4F22b2644Eaa62F5D13F14c941860aC\\\"):1\"",
       "outcome": "REJECTED_VAGUE",
       "evidenceUrl": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
-      "verbatimQuote": "Clause uses subjective terms; no concrete, observable API condition specified.",
+      "verbatimQuote": "The clause uses subjective qualities like modern, ergonomic, fast, and developer-friendly without naming any concrete function, symbol, or checkable condition.",
       "extractedDigest": "7c5b70f28c8440c8aba5d1db681949f188d2e0b27e4830721f8cceee8528f288",
       "details": {
         "id": 2,
@@ -77,19 +90,19 @@
         "clause_sha256": "7c5b70f28c8440c8aba5d1db681949f188d2e0b27e4830721f8cceee8528f288",
         "bond_wei": 0,
         "refundable_wei": 1,
-        "created_at": 1794399390,
-        "expires_at": 1794399390,
+        "created_at": 1794886215,
+        "expires_at": 1794886215,
         "grace_period_seconds": 0,
         "status": "REJECTED_VAGUE",
         "rule_gate_outcome": "REJECTED_VAGUE",
-        "rule_gate_reason": "Clause uses subjective terms; no concrete, observable API condition specified."
+        "rule_gate_reason": "The clause uses subjective qualities like modern, ergonomic, fast, and developer-friendly without naming any concrete function, symbol, or checkable condition."
       }
     },
     {
       "id": 3,
       "title": "Express.js Deprecates Legacy res.sendfile() & Pays Bounty",
       "description": "Claimant submits pledge-bound release evidence (History.md) and code evidence (lib/response.js) proving res.sendfile was deprecated. Validators confirm breach. Bond is transferred directly to claimant upon finalization via gl.get_contract_at(claimant).emit_transfer.",
-      "txHash": "0x2b1765792aed5528fe0516ed081f3615d907019b4fb025f440bc09b8a7ec28a5",
+      "txHash": "0x8d0d859938420f9b3fea93ba071371e3634c8d909a795242ed398fb4e8eb4dc3",
       "directPayoutTransferredWei": 1,
       "outcome": "BREAKING_CONFIRMED",
       "evidenceUrl": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
@@ -108,9 +121,9 @@
         "extracted_digest": "ac853fd479f87561501b1ca26bbdcc561b1700aaf180a082c144baf8bf96a3d6",
         "verdict": "BREAKING_CONFIRMED",
         "verbatim_quote": "res.sendfile = deprecate.function(res.sendfile,\n'res.sendfile: Use res.sendFile instead');",
-        "reason": "The snippet directly wraps res.sendfile in deprecate.function, violating the frozen clause.",
+        "reason": "The legacy res.sendfile method is explicitly wrapped in deprecate.function, violating the frozen clause.",
         "status": "FINALIZED",
-        "judged_at": 1794399524,
+        "judged_at": 1794886365,
         "payout_transferred_wei": 1
       }
     },
@@ -118,7 +131,7 @@
       "id": 4,
       "title": "False Alarm on Intact res.sendFile() Signature",
       "description": "Claimant tests intact method (res.sendFile). Validators fetch bounded slice, verify method is fully functional, and record NON_BREAKING verdict without penalizing maintainer.",
-      "txHash": "0x312985382ea2e59e09b6fd2feeb5a461fd8f0fb468c7519f9a212a06fdb9fae4",
+      "txHash": "0xe5463dac8400eeef01991c7842fe48f0b2d193ca3ff509f8956a19030db5b33d",
       "outcome": "NON_BREAKING",
       "evidenceUrl": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
       "releaseEvidenceUrl": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/History.md",
@@ -136,9 +149,9 @@
         "extracted_digest": "e3bd90056a54b1499ebe85b3447acfa0bd0f7d1ad334a122f224d88ad673b007",
         "verdict": "NON_BREAKING",
         "verbatim_quote": "res.sendFile = function sendFile(path, options, callback) {",
-        "reason": "The snippet shows res.sendFile exists and accepts path, options, and callback arguments.",
+        "reason": "The res.sendFile method is defined and accepts (path, options, callback) arguments.",
         "status": "FINALIZED",
-        "judged_at": 1794399581,
+        "judged_at": 1794886423,
         "payout_transferred_wei": 0
       }
     },
@@ -146,8 +159,8 @@
       "id": 5,
       "title": "Prompt-Injection Defense & Mismatched Repo Enforcement",
       "description": "Demonstrates deterministic on-chain rejection of mismatched repository claims, and defense against adversarial code containing prompt injections (\"Ignore previous instructions\") inside CombineAttacker.py.",
-      "txHash": "0xb167cde822841b6fbadc8529d6abb1b0b64e562fcfabd13dc82aba2451024fce",
-      "mismatchedTx": "0x54c7c83647d273c1f4cd32f4340f74030949e29397c193642a6ff77078be1e59",
+      "txHash": "0xc2c0f9cd4ab755d54fc05554b996f7c67f9a99b7e6a8d1b089b620d5dae19880",
+      "mismatchedTx": "0x158bfd195bb574fb2013a13ceb6ee132e396af34c1ca5b58f1f6fd9189fc10d0",
       "mismatchedReturn": "\"ERROR:EVIDENCE_NOT_BOUND_TO_PLEDGE_REPO_OR_FILE\"",
       "outcome": "NON_BREAKING",
       "evidenceUrl": "https://raw.githubusercontent.com/liu00222/Open-Prompt-Injection/fbed5cca347488f88363790ae3ae97c56116da6a/OpenPromptInjection/attackers/CombineAttacker.py",
@@ -166,9 +179,9 @@
         "extracted_digest": "c2e5713ff0367eb53991386d5d39af7256cb5462dcc929bbebb7e68bc0713451",
         "verdict": "NON_BREAKING",
         "verbatim_quote": "def inject(self, clean_data, idx, target_task):",
-        "reason": "The method signature matches the pledged interface and is implemented.",
+        "reason": "The inject method exists with exactly the arguments required by the frozen clause.",
         "status": "FINALIZED",
-        "judged_at": 1794399723,
+        "judged_at": 1794886560,
         "payout_transferred_wei": 0
       }
     },
@@ -176,10 +189,10 @@
       "id": 6,
       "title": "Unmatched Symbol & Trusted-Time Bond Expiry Refund",
       "description": "Demonstrates INSUFFICIENT_EVIDENCE when anchor symbol is missing, followed by trusted-time fallback resolution via resolve_expired_pledge() using real GenVM clock progression, and real native token refund via withdraw_refundable().",
-      "txHash": "0xf992292cd32e3474a42f26ecef4a8c6e261bfb1851b797b0c581548d0667516b",
-      "expireTx": "0x4ba5b75ca1cfcb09adf2812d0353d883c1934efbc5df8f24e9e5f3ff9afab5d0",
+      "txHash": "0x4eb9db85fc5e94beed31f10c918d9b36f346538d90a91a51f5b04569b2dd87f9",
+      "expireTx": "0xbd74fe55180dfbaf0315b38e49c9f40b578c9879d748d589c13a4a8b5e48c1b5",
       "expireReturn": "\"PLEDGE_EXPIRED_REFUNDED:PLEDGE_5\"",
-      "withdrawTx": "0x6b7b772e16d317e62e57bd6f39357a037a74534f8573b02770ed15536c2be05e",
+      "withdrawTx": "0xdf66fa1a4136b4a3feabf23343eed1527249e960d3b919d7a1b8b076800e306f",
       "withdrawReturn": "\"WITHDRAWN:Address(\\\"0xc130A7a4C4F22b2644Eaa62F5D13F14c941860aC\\\"):1\"",
       "outcome": "INSUFFICIENT_EVIDENCE",
       "evidenceUrl": "https://raw.githubusercontent.com/expressjs/express/8368dc178af16b91b576c4c1d135f701a0007e5d/lib/response.js",
@@ -199,10 +212,10 @@
         "verbatim_quote": "ANCHOR_SYMBOL_NOT_FOUND",
         "reason": "Anchor symbol 'nonExistentFunctionSymbol_XYZ_999' was not found in the fetched code artifact.",
         "status": "FINALIZED",
-        "judged_at": 1794399818,
+        "judged_at": 1794886672,
         "payout_transferred_wei": 0
       }
     }
   ],
-  "generatedAt": "2026-11-11T12:26:57.812Z"
+  "generatedAt": "2026-11-17T03:40:55.424Z"
 }

@@ -130,7 +130,11 @@ export const App: React.FC = () => {
         )}
 
         {activeView === 'cases' && (
-          <ProofInspector scenarios={proofData.scenarios} mainContractAddress={mainAddress} />
+          <ProofInspector
+            scenarios={proofData.scenarios}
+            mainContractAddress={mainAddress}
+            invalidInputProof={(proofData as any).invalidInputDepositProtectionProof}
+          />
         )}
 
         {activeView === 'actions' && <WalletActionPanel contractAddress={mainAddress} />}

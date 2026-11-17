@@ -66,7 +66,7 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
   ```
 - **INSTRUCTION:**
   ```text
-  Click the "Live StudioNet RPC (gen_call)" toggle in the top header to execute real-time read calls (get_stats, get_pledge, get_claim) directly against StudioNet Chain 61999 (0xEEDa967BeC7EB022350425C1D0c7c50107c06F1c).
+  Click the "Live StudioNet RPC (gen_call)" toggle in the top header to execute real-time read calls (get_stats, get_pledge, get_claim) directly against StudioNet Chain 61999 (0xd975E69a3B2C4919Da5C8e72bE5EE42c233c1e81).
   ```
 
 ### Step `#3`
@@ -100,7 +100,7 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
 
 - **CONTRACT LINK 1 (OPTIONAL):**
   ```text
-  https://explorer-studio.genlayer.com/address/0xEEDa967BeC7EB022350425C1D0c7c50107c06F1c
+  https://explorer-studio.genlayer.com/address/0xd975E69a3B2C4919Da5C8e72bE5EE42c233c1e81
   ```
 - Click **`+ Add another deployment`** -> **CONTRACT LINK 2:**
   ```text
@@ -129,10 +129,12 @@ Click **`+ Add another step`** to create 4 steps and paste the following:
   https://github.com/khezzed/DeprecateGuard
   ```
 - Click **`+ Add Evidence`** to attach direct proof artifacts:
+  - **Contract Deployment:** `https://explorer-studio.genlayer.com/tx/0x13a7420bf0da2a7d0c631a825103670d7d142a49092b797bc7a4b56bac94e923`
   - **Proof Manifest (`deploy/proof.json`):** `https://github.com/khezzed/DeprecateGuard/blob/main/deploy/proof.json`
-  - **Scenario 1 (`ACCEPTED`):** `https://explorer-studio.genlayer.com/tx/0x2481585086712952a749ea5b6947cddb8a6e9a9bb1566c1e65434b63cf2d5537`
-  - **Scenario 2 (`REJECTED_VAGUE`):** `https://explorer-studio.genlayer.com/tx/0xccf1320dacac1cd425bd983462051e64f954348bb23afe6021b4f7f606ca9147` (Native Withdrawal: `0x4dcb7084e44aa52a4f8738bdfe81ed4521b8052aad54fc0d86745820ae9329fe`)
-  - **Scenario 3 (`BREAKING_CONFIRMED`):** `https://explorer-studio.genlayer.com/tx/0x2b1765792aed5528fe0516ed081f3615d907019b4fb025f440bc09b8a7ec28a5` (Direct Native Bounty Payout: 1 wei via `emit_transfer`)
-  - **Scenario 4 (`NON_BREAKING`):** `https://explorer-studio.genlayer.com/tx/0x312985382ea2e59e09b6fd2feeb5a461fd8f0fb468c7519f9a212a06fdb9fae4`
-  - **Scenario 5 (`NON_BREAKING` Injection Defense):** `https://explorer-studio.genlayer.com/tx/0xb167cde822841b6fbadc8529d6abb1b0b64e562fcfabd13dc82aba2451024fce` (Repo Mismatch Rejection: `0x54c7c83647d273c1f4cd32f4340f74030949e29397c193642a6ff77078be1e59`)
-  - **Scenario 6 (`INSUFFICIENT_EVIDENCE`):** `https://explorer-studio.genlayer.com/tx/0xf992292cd32e3474a42f26ecef4a8c6e261bfb1851b797b0c581548d0667516b` (Trusted-Time Expiry: `0x4ba5b75ca1cfcb09adf2812d0353d883c1934efbc5df8f24e9e5f3ff9afab5d0`, Native Refund: `0x6b7b772e16d317e62e57bd6f39357a037a74534f8573b02770ed15536c2be05e`)
+  - **Steward Remediation (Invalid Input Deposit Protection):** Invalid Repo: `0x72af1350e28e4e8a38efe47bfba87efad39400b640ba62a6ae9ac19b048f67f5`, Invalid Path: `0xad0c4537f1ed5278d1dfe9ce2992ebf74dec7ed0985f16af46a11e409c514598`, Invalid Tag: `0x84ffe0b3bc633c3cf6dac85c75d6c0b2da56fd9848c7bcab252bce244a5b535a`, Cumulative Native Refund: `https://explorer-studio.genlayer.com/tx/0x1be89d90b695331c1e28ebaa19befa736bbd7ad7748fa7fb79215f8f04831ea8`
+  - **Scenario 1 (`ACCEPTED`):** `https://explorer-studio.genlayer.com/tx/0xfe2b837190ca96eafd82ff2c05344cdcccd005806c5b9a8ea53d0ea394fb49f3`
+  - **Scenario 2 (`REJECTED_VAGUE`):** `https://explorer-studio.genlayer.com/tx/0xf0ae0a0c6c9cc178692e0bd391c89b54dc81b1393f7b4a312ca30a56cb17c22d` (Native Withdrawal: `0xe821b1211daa9bf17e7723c24a3bf47adac2c57e81a7d3a147b03bbd99e0d0a1`)
+  - **Scenario 3 (`BREAKING_CONFIRMED`):** `https://explorer-studio.genlayer.com/tx/0x8d0d859938420f9b3fea93ba071371e3634c8d909a795242ed398fb4e8eb4dc3` (Direct Native Bounty Payout: 1 wei via `emit_transfer`)
+  - **Scenario 4 (`NON_BREAKING`):** `https://explorer-studio.genlayer.com/tx/0xe5463dac8400eeef01991c7842fe48f0b2d193ca3ff509f8956a19030db5b33d`
+  - **Scenario 5 (`NON_BREAKING` Injection Defense):** `https://explorer-studio.genlayer.com/tx/0xc2c0f9cd4ab755d54fc05554b996f7c67f9a99b7e6a8d1b089b620d5dae19880` (Repo Mismatch Rejection: `0x158bfd195bb574fb2013a13ceb6ee132e396af34c1ca5b58f1f6fd9189fc10d0`)
+  - **Scenario 6 (`INSUFFICIENT_EVIDENCE`):** `https://explorer-studio.genlayer.com/tx/0x4eb9db85fc5e94beed31f10c918d9b36f346538d90a91a51f5b04569b2dd87f9` (Trusted-Time Expiry: `0xbd74fe55180dfbaf0315b38e49c9f40b578c9879d748d589c13a4a8b5e48c1b5`, Native Refund: `0xdf66fa1a4136b4a3feabf23343eed1527249e960d3b919d7a1b8b076800e306f`)

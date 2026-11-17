@@ -10,7 +10,9 @@
     "deploy:main": "node scripts/02_deploy_main.mjs",
     "seed:live": "node scripts/03_seed_live_cases.mjs",
     "verify:proof": "node scripts/04_verify_proof.mjs",
-    "test:mock": "node tests/test_deprecate_guard_mock.mjs"
+    "test:mock": "node tests/test_deprecate_guard_mock.mjs",
+    "test:python": "python -m unittest tests/test_deprecate_guard.py",
+    "test": "npm run test:mock && npm run test:python"
   },
   "keywords": [
     "genlayer",

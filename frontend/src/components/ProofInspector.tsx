@@ -21,6 +21,18 @@ import { ScenarioProof } from '../types';
 interface Props {
   scenarios: ScenarioProof[];
   mainContractAddress: string;
+  invalidInputProof?: {
+    invalidRepoTx: string;
+    invalidRepoReturn: string;
+    invalidPathTx: string;
+    invalidPathReturn: string;
+    invalidTagTx: string;
+    invalidTagReturn: string;
+    accumulatedBalanceWei: number;
+    withdrawTx: string;
+    withdrawReturn: string;
+    postWithdrawBalanceWei: number;
+  };
 }
 
 const OUTCOME_META: Record<
@@ -70,7 +82,7 @@ const OUTCOME_META: Record<
   }
 };
 
-export const ProofInspector: React.FC<Props> = ({ scenarios }) => {
+export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }) => {
   const [selectedId, setSelectedId] = useState<number>(scenarios[0]?.id ?? 3);
   const [showRaw, setShowRaw] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
@@ -144,6 +156,36 @@ export const ProofInspector: React.FC<Props> = ({ scenarios }) => {
             </button>
           );
         })}
+
+        {/* Gen. Dave Steward Audit Verification: Invalid Input Deposit Protection */}
+        {invalidInputProof && (
+          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-emerald-500/30 text-xs space-y-2 mt-3">
+            <div className="flex items-center justify-between text-emerald-400 font-semibold">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                Steward Audit: Deposit Protection Proof
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+                100% Refundable
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              Tested all 3 invalid input paths (invalid repo, traversal file path, empty baseline tag) with 1 wei each on StudioNet. Contract credited all 3 deposits immediately up front and refunded the full 3 wei via native transfer.
+            </p>
+            <div className="flex items-center justify-between pt-1 font-mono text-[11px] text-slate-400 border-t border-slate-800">
+              <span>Withdrawal Tx:</span>
+              <a
+                href={`https://explorer-studio.genlayer.com/tx/${invalidInputProof.withdrawTx}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sky-400 hover:text-sky-300 flex items-center gap-1"
+              >
+                {invalidInputProof.withdrawTx.slice(0, 10)}...{invalidInputProof.withdrawTx.slice(-6)}
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right Column: Selected Case Detail */}

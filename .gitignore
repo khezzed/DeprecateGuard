@@ -6,3 +6,5 @@ deploy/state.json
 .env.*
 *.log
 .DS_Store
+__pycache__/
+*.pyc

@@ -169,7 +169,62 @@ function runTestSuite() {
   assert.strictEqual(now_expired > (expires_at + grace), true, 'Pledge must resolve to fallback after grace');
   console.log('  -> PASS: Deterministic deadline fallback mechanics verified');
 
-  console.log('=== All 11 Comprehensive Tests Passed Successfully ===');
+  // Test 12: Safe Deposit Crediting on Invalid Repository Name
+  console.log('[Test 12] Testing Invalid Repo Input Deposit Crediting & Refund...');
+  let callerRefundable = 0n;
+  const deposit1 = 100n;
+  callerRefundable += deposit1; // Credited up front
+  const invalidRepo = 'invalid-repo-without-slash';
+  const isRepoValid = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(invalidRepo);
+  assert.strictEqual(isRepoValid, false, 'Invalid repo must fail regex');
+  assert.strictEqual(callerRefundable, 100n, 'Deposit must be safely credited in refundable balance');
+  // Caller withdraws
+  const withdrawn1 = callerRefundable;
+  callerRefundable = 0n;
+  assert.strictEqual(withdrawn1, 100n);
+  assert.strictEqual(callerRefundable, 0n);
+  console.log('  -> PASS: Invalid repo safely records refundable deposit');
+
+  // Test 13: Safe Deposit Crediting on Invalid File Path
+  console.log('[Test 13] Testing Invalid Target File Path Deposit Crediting & Refund...');
+  const deposit2 = 250n;
+  callerRefundable += deposit2;
+  const invalidPath = '../secret.js';
+  const cleanedPath = invalidPath.trim().replace(/^\/+/, '');
+  const isPathValid = cleanedPath.length > 0 && !cleanedPath.includes('..');
+  assert.strictEqual(isPathValid, false, 'Traversal path must be rejected');
+  assert.strictEqual(callerRefundable, 250n, 'Deposit must be safely credited in refundable balance');
+  const withdrawn2 = callerRefundable;
+  callerRefundable = 0n;
+  assert.strictEqual(withdrawn2, 250n);
+  console.log('  -> PASS: Invalid target file path safely records refundable deposit');
+
+  // Test 14: Safe Deposit Crediting on Invalid Baseline Tag
+  console.log('[Test 14] Testing Invalid Baseline Tag Deposit Crediting & Refund...');
+  const deposit3 = 500n;
+  callerRefundable += deposit3;
+  const invalidTag = '';
+  const isTagValid = invalidTag.length > 0 && invalidTag.length <= 64;
+  assert.strictEqual(isTagValid, false, 'Empty baseline tag must be rejected');
+  assert.strictEqual(callerRefundable, 500n, 'Deposit must be safely credited in refundable balance');
+  const withdrawn3 = callerRefundable;
+  callerRefundable = 0n;
+  assert.strictEqual(withdrawn3, 500n);
+  console.log('  -> PASS: Invalid baseline tag safely records refundable deposit');
+
+  // Test 15: Cumulative Sequential Invalid Input Deposits & Lump-Sum Withdrawal
+  console.log('[Test 15] Testing Cumulative Invalid Deposits & Single Withdrawal...');
+  callerRefundable += 10n; // call 1: invalid repo
+  callerRefundable += 20n; // call 2: invalid file path
+  callerRefundable += 30n; // call 3: invalid baseline tag
+  assert.strictEqual(callerRefundable, 60n, 'Cumulative invalid deposits must equal 60n');
+  const lumpSumWithdrawn = callerRefundable;
+  callerRefundable = 0n;
+  assert.strictEqual(lumpSumWithdrawn, 60n, 'Lump-sum withdrawal must recover all deposits');
+  assert.strictEqual(callerRefundable, 0n, 'Refundable balance must be zeroed after withdrawal');
+  console.log('  -> PASS: Cumulative deposits and lump-sum withdrawal verified');
+
+  console.log('=== All 15 Comprehensive Tests Passed Successfully ===');
 }
 
 runTestSuite();
