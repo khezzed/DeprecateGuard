@@ -3,7 +3,7 @@ import { ExternalLink, Github, ArrowUpRight } from 'lucide-react';
 import { LiveContractReader } from './components/LiveContractReader';
 import { ProofInspector } from './components/ProofInspector';
 import { WalletActionPanel } from './components/WalletActionPanel';
-import { CopyButton, truncateHash } from './components/ui';
+import { CopyButton, SURFACE_CARD, truncateHash } from './components/ui';
 import { MAIN_CONTRACT_ADDRESS, STUDIONET_EXPLORER_URL } from './lib/genlayerClient';
 import proofData from './data/recordedProof.json';
 
@@ -26,7 +26,13 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050507] text-zinc-50 flex flex-col">
+    <div className="relative min-h-screen bg-[#050507] text-zinc-50 flex flex-col">
+      {/* Subtle Top-Center Ambient Depth Glow */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-x-0 top-0 h-[420px] bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(56,189,248,0.07),transparent)]"
+      />
+
       {/* Architectural Top Navigation Bar */}
       <header className="sticky top-0 z-50 h-14 border-b border-white/[0.07] bg-[#050507]/85 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between gap-6">
@@ -124,7 +130,7 @@ export const App: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-7 w-full space-y-6">
+      <main className="relative z-10 flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-7 w-full space-y-6">
         {activeView === 'cases' && (
           <>
             {/* Compact Product Header + Primary CTA */}
@@ -160,7 +166,7 @@ export const App: React.FC = () => {
             {/* Unified 4-Column On-Chain Telemetry Strip */}
             <section
               aria-label="On-Chain Telemetry"
-              className="border border-white/[0.08] bg-[#0a0b0e] rounded-lg grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]"
+              className={`${SURFACE_CARD} grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]`}
             >
               <div className="p-4 space-y-1">
                 <div className="text-[11px] uppercase tracking-wider text-zinc-500 font-medium">

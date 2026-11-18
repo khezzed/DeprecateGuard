@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { RefreshCw, Search, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { RefreshCw, Search, ExternalLink, ChevronDown, ChevronUp, SearchX } from 'lucide-react';
 import { getReadOnlyStudioClient, STUDIONET_EXPLORER_URL } from '../lib/genlayerClient';
 import {
   CodeEvidenceFrame,
   CopyButton,
   getOutcomeMeta,
+  SURFACE_CARD,
   truncateHash
 } from './ui';
 
@@ -33,6 +34,10 @@ export const LiveContractReader: React.FC<Props> = ({
   const [lastRefreshed, setLastRefreshed] = useState<string>('');
   const [rpcError, setRpcError] = useState<string | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
+
+  useEffect(() => {
+    executeRecordLookup('claim', 1);
+  }, []);
 
   const fetchLiveStats = async () => {
     setLoading(true);
@@ -237,7 +242,7 @@ export const LiveContractReader: React.FC<Props> = ({
       </div>
 
       {/* Unified 3-Column Contract Telemetry Strip */}
-      <section className="border border-white/[0.08] bg-[#0a0b0e] rounded-lg grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]">
+      <section className={`${SURFACE_CARD} grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]`}>
         <div className="p-4 space-y-1">
           <div className="text-[11px] uppercase tracking-wider text-zinc-500 font-medium">
             Deployed Contract
@@ -276,7 +281,7 @@ export const LiveContractReader: React.FC<Props> = ({
       </section>
 
       {/* Quick-Select Chips & Custom RPC Query Bar */}
-      <section className="border border-white/[0.08] bg-[#0a0b0e] rounded-lg p-5 space-y-5">
+      <section className={`${SURFACE_CARD} p-5 space-y-5`}>
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
@@ -437,15 +442,26 @@ export const LiveContractReader: React.FC<Props> = ({
                   </div>
                 )}
 
-                {lookupData.verbatim_quote && (
-                  <CodeEvidenceFrame
-                    filePath={lookupData.target_file_path || 'verified_artifact'}
-                    code={lookupData.verbatim_quote}
-                    commitSha={lookupData.commit_sha}
-                    anchorSymbol={lookupData.anchor_symbol}
-                    evidenceUrl={lookupData.evidence_url}
-                  />
-                )}
+                {lookupData.verbatim_quote &&
+                  (lookupData.verbatim_quote === 'ANCHOR_SYMBOL_NOT_FOUND' ? (
+                    <div className="p-3 rounded-md bg-[#0a0b0e] border border-amber-500/25 flex items-center justify-between gap-2 text-xs">
+                      <span className="inline-flex items-center gap-2 text-zinc-200">
+                        <SearchX className="w-3.5 h-3.5 text-amber-400" />
+                        Symbol Lookup Diagnostic
+                      </span>
+                      <span className="font-mono text-[11px] text-amber-300">
+                        ANCHOR_SYMBOL_NOT_FOUND
+                      </span>
+                    </div>
+                  ) : (
+                    <CodeEvidenceFrame
+                      filePath={lookupData.target_file_path || 'verified_artifact'}
+                      code={lookupData.verbatim_quote}
+                      commitSha={lookupData.commit_sha}
+                      anchorSymbol={lookupData.anchor_symbol}
+                      evidenceUrl={lookupData.evidence_url}
+                    />
+                  ))}
 
                 {(lookupData.reason || lookupData.rule_gate_reason) && (
                   <div className="space-y-1">

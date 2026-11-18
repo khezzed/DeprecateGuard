@@ -6,13 +6,17 @@ import {
   ArrowRight,
   ShieldCheck,
   FileCode2,
-  GitCommitHorizontal
+  GitCommitHorizontal,
+  AlertCircle,
+  SearchX
 } from 'lucide-react';
 import { ScenarioProof } from '../types';
 import {
   CodeEvidenceFrame,
   CopyButton,
+  formatContractReturn,
   getOutcomeMeta,
+  SURFACE_CARD,
   truncateHash
 } from './ui';
 import { STUDIONET_EXPLORER_URL } from '../lib/genlayerClient';
@@ -72,6 +76,13 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
     Boolean(activeScenario.expireTx) ||
     Boolean(activeScenario.mismatchedTx);
 
+  const isRuleGateProse = activeScenario.outcome === 'REJECTED_VAGUE';
+  const isMissingSymbolDiagnostic =
+    activeScenario.verbatimQuote === 'ANCHOR_SYMBOL_NOT_FOUND' ||
+    activeScenario.outcome === 'INSUFFICIENT_EVIDENCE';
+  const isSourceCodeQuote =
+    Boolean(activeScenario.verbatimQuote) && !isRuleGateProse && !isMissingSymbolDiagnostic;
+
   return (
     <div className="space-y-6">
       {/* Main Case Ledger Split-Pane */}
@@ -79,7 +90,7 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
         {/* Left Column (4 cols): Vertical Ledger List */}
         <aside
           aria-label="Case Ledger List"
-          className="lg:col-span-4 border border-white/[0.08] bg-[#0a0b0e] rounded-lg overflow-hidden"
+          className={`lg:col-span-4 ${SURFACE_CARD} overflow-hidden`}
         >
           <div className="px-4 py-3 border-b border-white/[0.07] bg-[#07080b] flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
@@ -146,12 +157,12 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
         {/* Right Column (8 cols): Adjudication Dossier */}
         <section
           aria-label="Adjudication Dossier"
-          className="lg:col-span-8 border border-white/[0.08] bg-[#0a0b0e] rounded-lg overflow-hidden"
+          className={`lg:col-span-8 ${SURFACE_CARD} overflow-hidden`}
         >
           {/* Dossier Header */}
           <div className="p-5 sm:p-6 border-b border-white/[0.07] space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <span className="text-xs font-mono text-zinc-500 tabular-nums">
                   CASE #{String(activeScenario.id).padStart(2, '0')}
                 </span>
@@ -163,9 +174,44 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
                 </span>
               </div>
 
-              <span className="text-[11px] font-mono text-zinc-400 bg-[#101217] border border-white/[0.07] px-2 py-0.5 rounded">
-                {activeScenario.outcome}
-              </span>
+              {/* Compact Primary Header Links */}
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={`${STUDIONET_EXPLORER_URL}/tx/${activeScenario.txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-md bg-white text-black hover:bg-zinc-200 text-[11px] font-medium transition-colors inline-flex items-center gap-1"
+                >
+                  Finalized Tx
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+
+                {activeScenario.evidenceUrl && (
+                  <a
+                    href={activeScenario.evidenceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2.5 py-1 rounded-md bg-[#101217] hover:bg-[#161920] text-zinc-200 border border-white/[0.08] hover:border-white/[0.16] text-[11px] font-medium transition-colors inline-flex items-center gap-1"
+                  >
+                    <FileCode2 className="w-3 h-3 text-zinc-400" />
+                    Source File
+                    <ExternalLink className="w-2.5 h-2.5 text-zinc-500" />
+                  </a>
+                )}
+
+                {activeScenario.releaseEvidenceUrl && (
+                  <a
+                    href={activeScenario.releaseEvidenceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2.5 py-1 rounded-md bg-[#101217] hover:bg-[#161920] text-zinc-200 border border-white/[0.08] hover:border-white/[0.16] text-[11px] font-medium transition-colors inline-flex items-center gap-1"
+                  >
+                    <GitCommitHorizontal className="w-3 h-3 text-zinc-400" />
+                    Release Manifest
+                    <ExternalLink className="w-2.5 h-2.5 text-zinc-500" />
+                  </a>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -226,8 +272,8 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
 
           {/* Dossier Body */}
           <div className="p-5 sm:p-6 space-y-5">
-            {/* Pledge Clause (for Pledge Scenarios) */}
-            {details.clause_text && (
+            {/* Pledge Clause (for Accepted Pledge Scenario #1) */}
+            {details.clause_text && !isRuleGateProse && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-zinc-400">
@@ -245,14 +291,82 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
               </div>
             )}
 
-            {/* IDE Code Evidence Frame */}
-            {activeScenario.verbatimQuote && (
+            {/* Case #02: RuleGate Specification Diagnostic (Prose, NOT fake code) */}
+            {isRuleGateProse && (
+              <div className="rounded-lg border border-amber-500/25 bg-[#07080b] overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-white/[0.07] bg-[#101217] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="text-xs font-medium text-zinc-100">
+                      RuleGate Specification Diagnostic
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-mono text-amber-300">REJECTED_VAGUE</span>
+                </div>
+
+                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
+                      Submitted Clause (Unverifiable)
+                    </div>
+                    <div className="p-3 rounded-md bg-[#050507] border border-white/[0.07] text-xs font-mono text-zinc-300 leading-relaxed">
+                      “{details.clause_text}”
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] font-mono uppercase tracking-wider text-amber-400/90">
+                      Validator RuleGate Finding
+                    </div>
+                    <div className="p-3 rounded-md bg-amber-500/[0.05] border border-amber-500/20 text-xs text-zinc-200 leading-relaxed">
+                      {activeScenario.verbatimQuote}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Case #06: Symbol Lookup Diagnostic (Error token, NOT fake code) */}
+            {isMissingSymbolDiagnostic && (
+              <div className="rounded-lg border border-amber-500/25 bg-[#07080b] overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-white/[0.07] bg-[#101217] flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <SearchX className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="text-xs font-medium text-zinc-100">
+                      Symbol Lookup Diagnostic
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-mono text-amber-300">
+                    ANCHOR_SYMBOL_NOT_FOUND
+                  </span>
+                </div>
+
+                <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="p-3 rounded-md bg-[#050507] border border-white/[0.07] space-y-1 sm:col-span-2">
+                    <div className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
+                      Searched Anchor Symbol
+                    </div>
+                    <div className="font-mono text-amber-300 break-all">
+                      {details.anchor_symbol || 'Unknown Symbol'}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-md bg-[#050507] border border-white/[0.07] space-y-1">
+                    <div className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
+                      Artifact Scan Window
+                    </div>
+                    <div className="font-mono text-zinc-200 tabular-nums">
+                      {targetFilePath} · 2,400 B scanned
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Cases #01, #03, #04, #05: IDE Code Evidence Frame */}
+            {isSourceCodeQuote && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-zinc-400">
-                    {details.clause_text
-                      ? 'Validator Rule Check / Verbatim Reference'
-                      : 'Verbatim Code Evidence Verified by Consensus'}
+                    Verbatim Code Evidence Verified by Consensus
                   </span>
                   <span className="text-[11px] font-mono text-zinc-500">
                     Bounded Slice Extraction
@@ -306,14 +420,16 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
                       </div>
                       <p className="text-[11px] text-zinc-400 leading-relaxed">
                         Settled immediately via{' '}
-                        <code className="text-zinc-200">gl.get_contract_at(claimant).emit_transfer</code>{' '}
-                        upon finalization.
+                        <code className="text-[11px] font-mono text-zinc-200 bg-white/[0.04] px-1 py-0.5 rounded border border-white/[0.06]">
+                          emit_transfer
+                        </code>{' '}
+                        to claimant upon finalization.
                       </p>
                     </div>
                   )}
 
                   {activeScenario.expireTx && (
-                    <div className="space-y-1 pt-1 border-t border-white/[0.06] first:pt-0 first:border-t-0">
+                    <div className="space-y-1 pt-2 border-t border-white/[0.06] first:pt-0 first:border-t-0">
                       <div className="flex items-center justify-between text-[11px] font-mono">
                         <span className="text-zinc-400">Trusted-Time Expiry</span>
                         <a
@@ -327,15 +443,15 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
                         </a>
                       </div>
                       {activeScenario.expireReturn && (
-                        <div className="text-[11px] font-mono text-amber-300/90 break-all">
-                          {activeScenario.expireReturn}
+                        <div className="text-[11px] font-mono text-amber-300/90">
+                          {formatContractReturn(activeScenario.expireReturn)}
                         </div>
                       )}
                     </div>
                   )}
 
                   {(activeScenario.withdrawTx || activeScenario.withdrawReturn) && (
-                    <div className="space-y-1 pt-1 border-t border-white/[0.06] first:pt-0 first:border-t-0">
+                    <div className="space-y-1 pt-2 border-t border-white/[0.06] first:pt-0 first:border-t-0">
                       <div className="flex items-center justify-between text-[11px] font-mono">
                         <span className="text-zinc-400">Pull Refund (emit_transfer)</span>
                         {activeScenario.withdrawTx && (
@@ -351,15 +467,15 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
                         )}
                       </div>
                       {activeScenario.withdrawReturn && (
-                        <div className="text-[11px] font-mono text-zinc-300 break-all">
-                          {activeScenario.withdrawReturn}
+                        <div className="text-[11px] font-mono text-emerald-300/90">
+                          {formatContractReturn(activeScenario.withdrawReturn)}
                         </div>
                       )}
                     </div>
                   )}
 
                   {activeScenario.mismatchedTx && (
-                    <div className="space-y-1 pt-1 border-t border-white/[0.06] first:pt-0 first:border-t-0">
+                    <div className="space-y-1 pt-2 border-t border-white/[0.06] first:pt-0 first:border-t-0">
                       <div className="flex items-center justify-between text-[11px] font-mono">
                         <span className="text-zinc-400">Repo-Boundary Guard Tx</span>
                         <a
@@ -373,76 +489,13 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
                         </a>
                       </div>
                       {activeScenario.mismatchedReturn && (
-                        <div className="text-[11px] font-mono text-amber-300/90 break-all">
-                          {activeScenario.mismatchedReturn}
+                        <div className="text-[11px] font-mono text-amber-300/90">
+                          {formatContractReturn(activeScenario.mismatchedReturn)}
                         </div>
                       )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-
-            {/* Evidence & Explorer Action Strip */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <a
-                href={`${STUDIONET_EXPLORER_URL}/tx/${activeScenario.txHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-md bg-white text-black hover:bg-zinc-200 text-xs font-medium transition-colors inline-flex items-center gap-1.5"
-              >
-                View Finalized Tx
-                <ExternalLink className="w-3 h-3" />
-              </a>
-
-              {activeScenario.evidenceUrl && (
-                <a
-                  href={activeScenario.evidenceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-md bg-[#101217] hover:bg-[#161920] text-zinc-200 border border-white/[0.08] hover:border-white/[0.14] text-xs font-medium transition-colors inline-flex items-center gap-1.5"
-                >
-                  <FileCode2 className="w-3.5 h-3.5 text-zinc-400" />
-                  Code Evidence
-                  <ExternalLink className="w-3 h-3 text-zinc-500" />
-                </a>
-              )}
-
-              {activeScenario.releaseEvidenceUrl && (
-                <a
-                  href={activeScenario.releaseEvidenceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-md bg-[#101217] hover:bg-[#161920] text-zinc-200 border border-white/[0.08] hover:border-white/[0.14] text-xs font-medium transition-colors inline-flex items-center gap-1.5"
-                >
-                  <GitCommitHorizontal className="w-3.5 h-3.5 text-zinc-400" />
-                  Release Artifact
-                  <ExternalLink className="w-3 h-3 text-zinc-500" />
-                </a>
-              )}
-
-              {activeScenario.withdrawTx && (
-                <a
-                  href={`${STUDIONET_EXPLORER_URL}/tx/${activeScenario.withdrawTx}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-md bg-emerald-500/[0.08] hover:bg-emerald-500/[0.14] text-emerald-300 border border-emerald-500/25 text-xs font-medium transition-colors inline-flex items-center gap-1.5"
-                >
-                  Native Transfer Tx
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
-
-              {activeScenario.expireTx && (
-                <a
-                  href={`${STUDIONET_EXPLORER_URL}/tx/${activeScenario.expireTx}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-md bg-amber-500/[0.08] hover:bg-amber-500/[0.14] text-amber-300 border border-amber-500/25 text-xs font-medium transition-colors inline-flex items-center gap-1.5"
-                >
-                  Trusted-Time Expiry Tx
-                  <ExternalLink className="w-3 h-3" />
-                </a>
               )}
             </div>
 
@@ -504,18 +557,24 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
       {invalidInputProof && (
         <section
           aria-label="Payable Input Guard Proof"
-          className="border border-white/[0.08] bg-[#0a0b0e] rounded-lg overflow-hidden"
+          className={`${SURFACE_CARD} overflow-hidden`}
         >
           <div className="px-5 py-3.5 border-b border-white/[0.07] bg-[#07080b] flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <div>
+              <div className="space-y-0.5">
                 <h3 className="text-xs font-semibold text-zinc-100">
                   Payable Input Guard Proof · Deposit Safety Invariant
                 </h3>
-                <p className="text-[11px] text-zinc-400">
-                  `create_pledge` credits `refundable_balances[caller]` before validation so malformed
-                  inputs never strand funds.
+                <p className="text-[11px] text-zinc-400 flex flex-wrap items-center gap-1">
+                  <code className="text-[11px] font-mono text-zinc-300 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
+                    create_pledge
+                  </code>
+                  <span>credits</span>
+                  <code className="text-[11px] font-mono text-zinc-300 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
+                    refundable_balances[caller]
+                  </code>
+                  <span>before validation so malformed inputs never strand funds.</span>
                 </p>
               </div>
             </div>
@@ -533,28 +592,28 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
               {
                 step: '01',
                 title: 'Invalid Repo (+1 wei)',
-                ret: invalidInputProof.invalidRepoReturn,
+                ret: formatContractReturn(invalidInputProof.invalidRepoReturn),
                 tx: invalidInputProof.invalidRepoTx,
                 accent: 'text-amber-300'
               },
               {
                 step: '02',
                 title: 'Invalid Path (+1 wei)',
-                ret: invalidInputProof.invalidPathReturn,
+                ret: formatContractReturn(invalidInputProof.invalidPathReturn),
                 tx: invalidInputProof.invalidPathTx,
                 accent: 'text-amber-300'
               },
               {
                 step: '03',
                 title: 'Invalid Tag (+1 wei)',
-                ret: invalidInputProof.invalidTagReturn,
+                ret: formatContractReturn(invalidInputProof.invalidTagReturn),
                 tx: invalidInputProof.invalidTagTx,
                 accent: 'text-amber-300'
               },
               {
                 step: '04',
                 title: `Lump-Sum Native Refund (${invalidInputProof.accumulatedBalanceWei} wei withdrawn)`,
-                ret: invalidInputProof.withdrawReturn,
+                ret: formatContractReturn(invalidInputProof.withdrawReturn),
                 tx: invalidInputProof.withdrawTx,
                 accent: 'text-emerald-300'
               }
@@ -571,7 +630,7 @@ export const ProofInspector: React.FC<Props> = ({ scenarios, invalidInputProof }
 
                 <div className="text-xs font-medium text-zinc-100">{item.title}</div>
 
-                <div className={`text-[11px] font-mono break-all ${item.accent}`}>
+                <div className={`text-[11px] font-mono break-words ${item.accent}`}>
                   {item.ret}
                 </div>
 

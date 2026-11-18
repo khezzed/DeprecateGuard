@@ -16,7 +16,7 @@ import {
   validateRepoAndPath,
   STUDIONET_EXPLORER_URL
 } from '../lib/genlayerClient';
-import { CopyButton, truncateHash } from './ui';
+import { CopyButton, SURFACE_CARD, truncateHash } from './ui';
 
 interface Props {
   contractAddress: string;
@@ -534,7 +534,7 @@ export const WalletActionPanel: React.FC<Props> = ({ contractAddress }) => {
         {/* Left Column (4 cols): Signer & 1-Click Test Scenarios */}
         <div className="lg:col-span-4 space-y-5">
           {/* Active Signer Card */}
-          <section className="border border-white/[0.08] bg-[#0a0b0e] rounded-lg p-5 space-y-4">
+          <section className={`${SURFACE_CARD} p-5 space-y-4`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -614,7 +614,7 @@ export const WalletActionPanel: React.FC<Props> = ({ contractAddress }) => {
           </section>
 
           {/* 1-Click Test Scenarios */}
-          <section className="border border-white/[0.08] bg-[#0a0b0e] rounded-lg overflow-hidden">
+          <section className={`${SURFACE_CARD} overflow-hidden`}>
             <div className="px-4 py-3 border-b border-white/[0.07] bg-[#07080b] flex items-center justify-between">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                 1-Click Test Scenarios
@@ -655,7 +655,7 @@ export const WalletActionPanel: React.FC<Props> = ({ contractAddress }) => {
 
         {/* Right Column (8 cols): Operation Specification Form */}
         <div className="lg:col-span-8 space-y-5">
-          <div className="border border-white/[0.08] bg-[#0a0b0e] rounded-lg overflow-hidden">
+          <div className={`${SURFACE_CARD} overflow-hidden`}>
             {/* Top Segmented Operation Bar */}
             <div className="grid grid-cols-1 sm:grid-cols-3 border-b border-white/[0.07] bg-[#07080b] divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]">
               {[
@@ -686,8 +686,11 @@ export const WalletActionPanel: React.FC<Props> = ({ contractAddress }) => {
               <form onSubmit={handleCreatePledge} className="p-5 sm:p-6 space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/[0.06]">
                   <div>
-                    <h3 className="text-sm font-semibold text-zinc-100">
-                      Lock Stability Bond (`create_pledge`)
+                    <h3 className="text-sm font-semibold text-zinc-100 flex flex-wrap items-center gap-2">
+                      <span>Lock Stability Bond</span>
+                      <code className="text-[11px] font-mono font-normal text-zinc-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
+                        create_pledge
+                      </code>
                     </h3>
                     <p className="text-xs text-zinc-400 mt-0.5">
                       Deposits 1 wei bond; RuleGate validates clause specificity and binds repository
@@ -815,8 +818,11 @@ export const WalletActionPanel: React.FC<Props> = ({ contractAddress }) => {
               <form onSubmit={handleSubmitClaim} className="p-5 sm:p-6 space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/[0.06]">
                   <div>
-                    <h3 className="text-sm font-semibold text-zinc-100">
-                      Submit Breaking-Change Claim (`submit_and_judge_claim`)
+                    <h3 className="text-sm font-semibold text-zinc-100 flex flex-wrap items-center gap-2">
+                      <span>Submit Breaking-Change Claim</span>
+                      <code className="text-[11px] font-mono font-normal text-zinc-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
+                        submit_and_judge_claim
+                      </code>
                     </h3>
                     <p className="text-xs text-zinc-400 mt-0.5">
                       Submits 40-hex commit SHA pinned artifacts for consensus adjudication against
@@ -942,8 +948,11 @@ export const WalletActionPanel: React.FC<Props> = ({ contractAddress }) => {
             {mode === 'expire' && (
               <form onSubmit={handleResolveExpired} className="p-5 sm:p-6 space-y-5">
                 <div className="pb-3 border-b border-white/[0.06]">
-                  <h3 className="text-sm font-semibold text-zinc-100">
-                    Resolve Expired Bond (`resolve_expired_pledge`)
+                  <h3 className="text-sm font-semibold text-zinc-100 flex flex-wrap items-center gap-2">
+                    <span>Resolve Expired Bond</span>
+                    <code className="text-[11px] font-mono font-normal text-zinc-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
+                      resolve_expired_pledge
+                    </code>
                   </h3>
                   <p className="text-xs text-zinc-400 mt-0.5">
                     Unlocks an unbreached bond after its duration and grace period elapse on
@@ -988,7 +997,7 @@ export const WalletActionPanel: React.FC<Props> = ({ contractAddress }) => {
           {(txState !== 'idle' || txMessage) && (
             <section
               aria-label="Transaction Finality Status"
-              className="border border-white/[0.08] bg-[#0a0b0e] rounded-lg p-5 space-y-4"
+              className={`${SURFACE_CARD} p-5 space-y-4`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">

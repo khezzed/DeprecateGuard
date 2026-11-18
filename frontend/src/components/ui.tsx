@@ -1,10 +1,55 @@
 import React, { useState } from 'react';
 import { Check, Copy, ExternalLink, FileCode2 } from 'lucide-react';
 
+export const SURFACE_CARD =
+  'border border-white/[0.08] bg-[#0a0b0e] rounded-lg shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]';
+
 export function truncateHash(hash?: string | null, start = 6, end = 4): string {
   if (!hash) return '';
   if (hash.length <= start + end + 3) return hash;
   return `${hash.slice(0, start)}…${hash.slice(-end)}`;
+}
+
+/**
+ * Unwraps double-encoded contract return strings from StudioNet receipts
+ * into clean, human-scannable protocol status strings.
+ */
+export function formatContractReturn(raw?: string | null): string {
+  if (!raw) return '';
+  let text = raw.trim();
+  for (let i = 0; i < 2; i++) {
+    if (text.startsWith('"') && text.endsWith('"')) {
+      try {
+        const parsed = JSON.parse(text);
+        if (typeof parsed === 'string') {
+          text = parsed.trim();
+          continue;
+        }
+      } catch {
+        text = text.slice(1, -1);
+      }
+    }
+    break;
+  }
+  text = text.replace(/\\"/g, '"');
+
+  const withdrawnMatch = text.match(/^WITHDRAWN:Address\("?(0x[a-fA-F0-9]+)"?\):(\d+)$/);
+  if (withdrawnMatch) {
+    const [, addr, amount] = withdrawnMatch;
+    return `WITHDRAWN · ${amount} wei → ${truncateHash(addr, 6, 4)}`;
+  }
+
+  const errorMatch = text.match(/^ERROR:([A-Z0-9_]+)$/);
+  if (errorMatch) {
+    return `ERROR · ${errorMatch[1]}`;
+  }
+
+  const expiredMatch = text.match(/^PLEDGE_EXPIRED_REFUNDED:PLEDGE_(\d+)$/);
+  if (expiredMatch) {
+    return `EXPIRED_REFUNDED · Pledge #${expiredMatch[1]}`;
+  }
+
+  return text;
 }
 
 export const CopyButton: React.FC<{
